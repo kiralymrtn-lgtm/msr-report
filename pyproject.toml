@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "msr-report"
+version = "0.1.0"
+description = "Automated market survey report generator"
+requires-python = ">=3.10"
+dependencies = [
+  "typer>=0.12.0",
+  "rich>=13.7.0",
+  "python-dotenv>=1.0.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["msr*"]
+
+[project.scripts]
+msr = "msr.cli:main"

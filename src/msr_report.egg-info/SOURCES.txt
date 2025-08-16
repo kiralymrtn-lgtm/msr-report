@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+src/msr/__init__.py
+src/msr/cli.py
+src/msr/utils/__init__.py
+src/msr/utils/paths.py
+src/msr_report.egg-info/PKG-INFO
+src/msr_report.egg-info/SOURCES.txt
+src/msr_report.egg-info/dependency_links.txt
+src/msr_report.egg-info/entry_points.txt
+src/msr_report.egg-info/requires.txt
+src/msr_report.egg-info/top_level.txt
