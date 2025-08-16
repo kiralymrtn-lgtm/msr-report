@@ -3,84 +3,117 @@
 <head>
   <meta charset="utf-8">
   <title>{{ title or "Riport" }}</title>
-  <!-- a CSS-hez abszolút file:// útvonalat adunk, így a böngésző tudja olvasni a local/ alól -->
-  <link rel="stylesheet" href="file://{{ brand_css_path }}">
+
+  {# brand CSS abszolút file:// útvonallal #}
+  {% if brand_css_path %}
+    <link rel="stylesheet" href="file://{{ brand_css_path }}">
+  {% endif %}
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
 
-<!-- címoldal (cover) – ha van bármelyik háttérkép, kapja a 'cover' osztályt -->
-<div
-  class="page title-page {% if cover and (cover.background_path or cover.background_bottom_path) %}cover{% endif %}"
-  style="
-    {% if cover and cover.background_path %}
-      --cover-bg-top: url('file://{{ cover.background_path }}');
-    {% endif %}
-    {% if cover and cover.background_bottom_path %}
-      --cover-bg-bottom: url('file://{{ cover.background_bottom_path }}');
-    {% endif %}
-  "
->
+{# ===== COVER csak akkor, ha van cover a contextben ===== #}
+{% if cover %}
+  <!-- címoldal (cover) – ha van bármelyik háttérkép, kapja a 'cover' osztályt -->
+  <div
+    class="page title-page {% if cover.background_path or cover.background_bottom_path %}cover{% endif %}"
+    style="
+      {% if cover.background_path %}
+        --cover-bg-top: url('file://{{ cover.background_path }}');
+      {% endif %}
+      {% if cover.background_bottom_path %}
+        --cover-bg-bottom: url('file://{{ cover.background_bottom_path }}');
+      {% endif %}
+    "
+  >
 
-{% if cover and cover.logo_path %}
-  <div class="logo-block">
-    <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
-  </div>
+    {% if cover.logo_path %}
+      <div class="logo-block">
+        <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
+      </div>
+    {% endif %}
+
+    <div class="title-block">
+      {% if cover.title %}
+        <div class="cover-title-line1">{{ cover.title.line1 }}</div>
+        <div class="cover-title-row2">
+          <div class="cover-title-line2">{{ cover.title.line2 }}</div>
+          <div class="cover-title-year">{{ cover.title.year }}</div>
+        </div>
+      {% else %}
+        <!-- fallback a régi h1-re, ha nincs felbontott cím -->
+        <h1>{{ report_title }}</h1>
+        {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
+      {% endif %}
+    </div>
+
+  </div>  <!-- <<< FONTOS: lezárjuk a cover oldalt -->
 {% endif %}
 
-<div class="title-block">
-  {% if cover and cover.title %}
-    <div class="cover-title-line1">{{ cover.title.line1 }}</div>
-    <div class="cover-title-row2">
-      <div class="cover-title-line2">{{ cover.title.line2 }}</div>
-      <div class="cover-title-year">{{ cover.title.year }}</div>
+{# ===== TARTALMI OLDALAK (sections) ===== #}
+{% for s in sections %}
+  <div
+    class="page content-page"
+    style="
+      {% if s.header_height %}--content-header-height: {{ s.header_height }};{% endif %}
+      {% if s.header_width  %}--content-header-width:  {{ s.header_width  }};{% endif %}
+      {% if s.title_main_size %}--content-title-main-size: {{ s.title_main_size }};{% endif %}
+      {% if s.title_sub_size  %}--content-title-sub-size:  {{ s.title_sub_size  }};{% endif %}
+    "
+  >
+    <!-- bal felső 'secondary' színű sáv a címmel -->
+    <div class="content-header">
+      <h2 class="content-title" style="margin:0; padding-left: var(--content-title-left-pad);">
+        <span class="content-title-main">{{ s.title_main }}</span>
+        <span class="content-title-sub">{{ s.title_sub }}</span>
+      </h2>
     </div>
-  {% else %}
-    <!-- fallback a régi h1-re, ha nincs felbontott cím -->
-    <h1>{{ report_title }}</h1>
-    {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
-  {% endif %}
-</div>
 
-
-
-<!-- szekciók (egy lista a contextben) -->
-{% for section in sections %}
-  <div class="page">
-    <h2 class="section-title">{{ section.title }}</h2>
-
-    {% if section.text %}
-      <p>{{ section.text }}</p>
+    <!-- jobb felső logo -->
+    {# melyik logót használjuk ezen az oldalon?
+        - ha a section ad külön 'logo_path'-ot → az nyer
+        - különben a globális 'content_logo_path'
+        - és csak akkor rajzoljuk ki, ha nincs explicit tiltás (s.hide_logo) #}
+    {% set section_logo = (s.logo_path if s.logo_path is defined and s.logo_path else content_logo_path) %}
+    {% if (s.hide_logo is not defined or not s.hide_logo) and section_logo %}
+      <div class="content-logo">
+          <img src="file://{{ section_logo }}" alt="Logo">
+      </div>
     {% endif %}
 
-    {% if section.cards %}
-      {% for card in section.cards %}
-        <div class="card" style="margin-bottom: 6mm;">
-          <h3>{{ card.title }}</h3>
-          {% if card.text %}
-            <p>{{ card.text }}</p>
-          {% endif %}
 
-          {% if card.image_path %}
-            <!-- képek is file:// abszolút úton jönnek majd -->
-            <img src="file://{{ card.image_path }}" alt="{{ card.title }}"
-                 style="max-width:100%; display:block; margin-top:4mm;">
-          {% endif %}
 
-          {% if card.table %}
-            <table style="width:100%; border-collapse: collapse; margin-top:4mm;">
-              {% for row in card.table %}
-                <tr>
-                  {% for cell in row %}
-                    <td style="border:1px solid #e0e0e0; padding:2mm;">{{ cell }}</td>
-                  {% endfor %}
-                </tr>
-              {% endfor %}
-            </table>
-          {% endif %}
-        </div>
-      {% endfor %}
-    {% endif %}
+    <!-- a tényleges tartalom (grafikonok, táblák, szöveg) a sáv alatt -->
+    <div class="content-body">
+      {% if s.paragraph %}
+        <p>{{ s.paragraph | safe }}</p>  {# ← HTML engedélyezése a demo szövegben #}
+      {% endif %}
+
+      {% if s.image_path %}
+        <figure style="margin: 8mm 0;">
+          <img src="file://{{ s.image_path }}" alt="" style="max-width:100%; height:auto;">
+        </figure>
+      {% endif %}
+
+        {% if s.table %}
+          <table class="table" style="border-collapse:collapse; width:100%;">
+            {% for row in s.table %}
+              {% set is_header = loop.first %}
+              <tr>
+                {% for cell in row %}
+                  {% if is_header %}
+                    <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
+                  {% else %}
+                    <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </table>
+        {% endif %}
+
+    </div>
   </div>
 {% endfor %}
 

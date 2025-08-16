@@ -176,6 +176,56 @@ def render_cover_demo() -> None:
     console.print("→ Készíts PDF-et ezzel:  msr pdf-from-html demo_cover.html")
 
 
+
+@app.command("render-content-demo")
+def render_content_demo() -> None:
+    # 1) css ellenőrzés
+    brand_css_path = local_path("assets", "css", "brand.css")
+    if not brand_css_path.exists():
+        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+        raise typer.Exit(code=1)
+
+    # 2) BRAND betöltése, default content logó kivétele
+    brand = get_brand()
+    content_logo_path = (
+        str(brand.assets.logo_path.resolve())
+        if brand.assets.logo_path else None
+    )
+
+    # 3) csak a formai váz (nincs paragrafus/kép/tábla)
+    section = {
+        "header_width":  "66.666%",
+        "header_height": "20mm",
+        "title_main": "VÁLLALATI",
+        "title_sub":  "teljesítmény az elmúlt 12 hónapban",
+        # ide NEM adunk logo_path-ot → a sablon a global defaultot fogja használni
+        # ha valamelyik oldalon mégsem kell logó:
+        # "hide_logo": True,
+        # ha valamelyik oldalon MÁS logót szeretnél:
+        # "logo_path": "/abszolút/elérési/út/masik_logo.png",
+        # opcionális finomhangolás oldalanként:
+        # "logo_max_height": "14mm",
+        # "logo_right_pad":  "8mm",
+    }
+
+    context = {
+        "title": "Riport (content demo – váz)",
+        "brand_css_path": str(brand_css_path.resolve()),
+        "content_logo_path": content_logo_path,   # ← ALAPÉRTELMEZETT CONTENT LOGÓ
+        "sections": [section],
+        # fontos: NINCS 'cover' kulcs → a cover nem jelenik meg
+    }
+
+    out_html = render_to_html_file(
+        template_name="base.html.j2",
+        context=context,
+        output_filename="demo_content.html",
+    )
+    console.print(f"[green]OK[/green] Content HTML (váz) létrehozva: {out_html}")
+    console.print("→ PDF:  msr pdf-from-html demo_content.html")
+
+
+
 def main() -> None:
     app()
 
