@@ -143,17 +143,27 @@ def render_cover_demo() -> None:
             console.print(f"  - {m}")
         console.print("Ahol hiányzik, ott egyszerűen háttér/logó nélkül renderelünk.")
 
+    # először számoljuk ki a második háttér útvonalát is:
+    bg_bottom = local_path("assets", "backgrounds", "cover_bg_bottom.png")
+    if not bg_bottom.exists():
+        console.print(
+            "[yellow]Figyelem:[/yellow] nincs második háttér (cover_bg_bottom.png) – csak a felső réteg jelenik meg.")
+
     context = {
         "title": "Riport (demo cover)",
-        "report_title": "Vállalkozói",
+        "report_title": "VÁLLALKOZÓI",
         "report_subtitle": "egydi riport 2025",
         "brand_css_path": str(brand.assets.css_path.resolve()),
-        # COVER BLOKK – a sablon ezt várja
         "cover": {
             "logo_path": str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None,
             "background_path": str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None,
+            "background_bottom_path": str(bg_bottom.resolve()) if bg_bottom.exists() else None,
+            "title": {  # ← ÚJ
+                "line1": "VÁLLALKOZÓI",
+                "line2": "egyedi riport",
+                "year":  "2025",
+            },
         },
-        # a többi oldalhoz most üres szekciókat adunk (ne foglaljon el még több oldalt)
         "sections": [],
     }
 

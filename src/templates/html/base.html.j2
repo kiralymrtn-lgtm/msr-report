@@ -9,23 +9,39 @@
 </head>
 <body>
 
-<!-- címoldal (cover) – ha van háttérkép, beállítjuk CSS változóval -->
+<!-- címoldal (cover) – ha van bármelyik háttérkép, kapja a 'cover' osztályt -->
 <div
-  class="page title-page {% if cover and cover.background_path %}cover{% endif %}"
-  {% if cover and cover.background_path %}
-    style="--cover-bg: url('file://{{ cover.background_path }}')"
-  {% endif %}
+  class="page title-page {% if cover and (cover.background_path or cover.background_bottom_path) %}cover{% endif %}"
+  style="
+    {% if cover and cover.background_path %}
+      --cover-bg-top: url('file://{{ cover.background_path }}');
+    {% endif %}
+    {% if cover and cover.background_bottom_path %}
+      --cover-bg-bottom: url('file://{{ cover.background_bottom_path }}');
+    {% endif %}
+  "
 >
-  {% if cover and cover.logo_path %}
-    <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
-  {% endif %}
 
-  <div class="title-block">
+{% if cover and cover.logo_path %}
+  <div class="logo-block">
+    <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
+  </div>
+{% endif %}
+
+<div class="title-block">
+  {% if cover and cover.title %}
+    <div class="cover-title-line1">{{ cover.title.line1 }}</div>
+    <div class="cover-title-row2">
+      <div class="cover-title-line2">{{ cover.title.line2 }}</div>
+      <div class="cover-title-year">{{ cover.title.year }}</div>
+    </div>
+  {% else %}
+    <!-- fallback a régi h1-re, ha nincs felbontott cím -->
     <h1>{{ report_title }}</h1>
     {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
-    {% if prepared_for %}<div class="meta small">Készült: {{ prepared_for }}</div>{% endif %}
-  </div>
+  {% endif %}
 </div>
+
 
 
 <!-- szekciók (egy lista a contextben) -->
