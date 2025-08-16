@@ -1,7 +1,14 @@
 README.md
 pyproject.toml
 src/msr/__init__.py
+src/msr/brand.py
 src/msr/cli.py
+src/msr/charts/__init__.py
+src/msr/charts/bar.py
+src/msr/html/__init__.py
+src/msr/html/builder.py
+src/msr/pdf/__init__.py
+src/msr/pdf/html_to_pdf.py
 src/msr/utils/__init__.py
 src/msr/utils/paths.py
 src/msr_report.egg-info/PKG-INFO

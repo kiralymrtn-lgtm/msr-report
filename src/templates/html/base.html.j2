@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title or "Riport" }}</title>
+  <!-- a CSS-hez abszolút file:// útvonalat adunk, így a böngésző tudja olvasni a local/ alól -->
+  <link rel="stylesheet" href="file://{{ brand_css_path }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<!-- címoldal (cover) – ha van háttérkép, beállítjuk CSS változóval -->
+<div
+  class="page title-page {% if cover and cover.background_path %}cover{% endif %}"
+  {% if cover and cover.background_path %}
+    style="--cover-bg: url('file://{{ cover.background_path }}')"
+  {% endif %}
+>
+  {% if cover and cover.logo_path %}
+    <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
+  {% endif %}
+
+  <div class="title-block">
+    <h1>{{ report_title }}</h1>
+    {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
+    {% if prepared_for %}<div class="meta small">Készült: {{ prepared_for }}</div>{% endif %}
+  </div>
+</div>
+
+
+<!-- szekciók (egy lista a contextben) -->
+{% for section in sections %}
+  <div class="page">
+    <h2 class="section-title">{{ section.title }}</h2>
+
+    {% if section.text %}
+      <p>{{ section.text }}</p>
+    {% endif %}
+
+    {% if section.cards %}
+      {% for card in section.cards %}
+        <div class="card" style="margin-bottom: 6mm;">
+          <h3>{{ card.title }}</h3>
+          {% if card.text %}
+            <p>{{ card.text }}</p>
+          {% endif %}
+
+          {% if card.image_path %}
+            <!-- képek is file:// abszolút úton jönnek majd -->
+            <img src="file://{{ card.image_path }}" alt="{{ card.title }}"
+                 style="max-width:100%; display:block; margin-top:4mm;">
+          {% endif %}
+
+          {% if card.table %}
+            <table style="width:100%; border-collapse: collapse; margin-top:4mm;">
+              {% for row in card.table %}
+                <tr>
+                  {% for cell in row %}
+                    <td style="border:1px solid #e0e0e0; padding:2mm;">{{ cell }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </table>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+{% endfor %}
+
+</body>
+</html>

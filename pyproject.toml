@@ -1,8 +1,8 @@
-[build-system]
+[build-system] #Megmondja a pip-nek, hogyan építse fel/telepítse a csomagot. A setuptools a standard megoldás
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[project]
+[project] #A csomag neve, verziója, Python-verzió követelménye és a futási függőségek (Typer, Rich, Dotenv…)
 name = "msr-report"
 version = "0.1.0"
 description = "Automated market survey report generator"
@@ -11,11 +11,14 @@ dependencies = [
   "typer>=0.12.0",
   "rich>=13.7.0",
   "python-dotenv>=1.0.1",
+  "jinja2>=3.1.4",        # HTML sablonmotor, amivel változókat/ciklusokat tudsz a html-be tenni
+  "playwright>=1.45.0",   # headless böngésző (Chromium) PDF-hez
+  "matplotlib>=3.8.0",    # matplotlib rajzolja a png-t. nagy előny: te döntöd el a méretet (inch-ben), a dpi-t, a betűket
 ]
 
-[tool.setuptools.packages.find]
+[tool.setuptools.packages.find] #A setuptools itt keresi a csomagokat: a src/ alatt, és csak azokat, amik msr… névvel kezdődnek. Így nem pakol bele véletlen dolgokat
 where = ["src"]
 include = ["msr*"]
 
-[project.scripts]
+[project.scripts] #Console script (entry point): a pip install -e . létrehoz egy futtatható msr parancsot, ami a msr/cli.py fájl main() függvényét hívja. Ezért működik a terminálban az, hogy: msr --help
 msr = "msr.cli:main"
