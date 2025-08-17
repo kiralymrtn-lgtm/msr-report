@@ -211,19 +211,48 @@ def render_content_demo() -> None:
     content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
 
     # 3) egy példa tartalmi oldal – CSAK formai váz
-    section = {
-        "header_width":  "66.666%",                 # bal felső sáv szélesség
-        "header_height": "20mm",                    # bal felső sáv magasság
-        "title_main": "VÁLLALATI",                  # főcím (Rubik, CAPS)
-        "title_sub":  "teljesítmény az elmúlt 12 hónapban",  # alcím (Times, italic)
-        # jobb felső logó oldalanként állítható magassága:
-        "logo_height": "8mm",                      # ← ha kihagyod, a CSS fallback érvényesül
-        # "hide_logo": True,                        # ← ezzel el is rejtheted az adott oldalon
-    }
+    sections = [
+        # 1) TEXT-ONLY
+        {
+            "layout": "text",
+            "title_main": "KÖSZÖNETNYILVÁNÍTÁS",
+            "title_sub": "a válaszadók felé",
+            "text_html": """
+              <h3>A riport készítői</h3>
+              <p>Köszönjük a kitöltők munkáját és idejét. Ezt az oldalt text-only
+              layouttal készítettük, kényelmes olvasási sorhosszal.</p>
+            """,
+            "text_only_max_width": "70%",
+            "text_only_font_size": "12pt",
+            "text_only_line_height": "1.7",
+            "text_align": "left",
+            # a fejléc paraméterei (bal sáv és cím méret)
+            "header_width": "66.666%",
+            "header_height": "20mm",
+            "title_main_size": "10mm",
+            "title_sub_size": "8mm",
+        },
+        # 2) SPLIT
+        {
+            "layout": "split",
+            "title_main": "VÁLLALATI",
+            "title_sub": "teljesítmény az elmúlt 12 hónapban",
+            # "image_path": str(chart_path.resolve()),  # ha generálsz előtte grafikon PNG-t
+            "explain_title": "Értelmezés",
+            "explain_paragraph": "Bal oldalt a mutató oszlopdiagramja, jobb oldalt rövid magyarázat.",
+            "split_left_width": "58%",
+            "split_gap": "8mm",
+            "explain_title_size": "7mm",
+            "header_width": "66.666%",
+            "header_height": "20mm",
+            "title_main_size": "12mm",
+            "title_sub_size": "10mm",
+        },
+    ]
 
     # 4) context összeállítás
     context = {
-        "title": "Riport (content demo – váz)",
+        "title": "Riport (content demo)",
         "brand_css_path": str(brand_css_path.resolve()),
         "content_logo_path": content_logo_path,     # default content logó (coveren NEM jelenik meg)
         # oldalszámozás beállításai:
@@ -236,7 +265,7 @@ def render_content_demo() -> None:
             "enabled": True,
             # "pre_content_pages": 1,  # ha mindenáron felül akarod írni (pl. több előoldal van)
         },
-        "sections": [section],
+        "sections": sections,
         # fontos: NINCS 'cover' kulcs → most nem renderelünk címlapot
     }
 
