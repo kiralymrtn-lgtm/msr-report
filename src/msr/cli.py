@@ -20,6 +20,7 @@ from .html.builder import render_to_html_file
 from .pdf.html_to_pdf import html_to_pdf
 from .charts.bar import save_simple_bar  # a render-demo-hoz
 from .brand import get_brand
+from .data.manifest import load_structure, summarize
 
 
 app = typer.Typer(help="msr-report – riport generátor")
@@ -324,12 +325,83 @@ def render_cover_and_content_demo() -> None:
     console.print("→ PDF:  msr pdf-from-html demo_cover_content.html")
 
 
+# ──────────────────────────────────────────────────────────────
+# köszönetnyilvánítás demo (alapesetben 2. oldal)
+# ──────────────────────────────────────────────────────────────
+@app.command("render-thanks")
+def render_thanks() -> None:
+    """
+    'Köszönetnyilvánítás' oldalt renderel:
+    - normál CONTENT háttér (bal felső sáv + jobb felső logó),
+    - a törzsben 'text' layout, a szöveg a local/data/content/thanks.html-ből jön.
+    """
+    # 1) CSS megvan?
+    brand_css_path = local_path("assets", "css", "brand.css")
+    if not brand_css_path.exists():
+        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+        raise typer.Exit(code=1)
+
+    # 2) brand + default content logó (jobb felső sarok)
+    brand = get_brand()
+    content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
+
+    # 3) köszönet szöveg beolvasása (HTML-ként)
+    thanks_file = local_path("data", "content", "thanks.html")
+    if not thanks_file.exists():
+        console.print(f"[yellow]Figyelem:[/yellow] hiányzik: {thanks_file}")
+        console.print("Hozd létre a fájlt (HTML-lel), és futtasd újra.")
+        raise typer.Exit(code=1)
+    thanks_html = thanks_file.read_text(encoding="utf-8")
+
+    # 4) SECTION – NEM nullázzuk a fejlécet → látszik a 'secondary' sáv
+    section = {
+        "layout": "text",                 # ← a törzs text-only doboz
+        # FEJLÉC (bal felső sáv)
+        "header_width":  "66.666%",       # kb. két harmad szélesség
+        "header_height": "20mm",          # sáv magassága
+        "title_main": "KÖSZÖNETNYILVÁNÍTÁS",  # főcím a sávban (Rubik, CAPS)
+        "title_sub":  "",                 # alcím itt most nincs (Times italic lenne)
+
+        # JOBB FELSŐ LOGÓ – megjelenik (ha nem szeretnéd: "hide_logo": True)
+        #"logo_height": "14mm",            # tetszőlegesen állítható (brand.css-ben a var-hoz kötve)
+
+        # TEXT LAYOUT finomhangolás (a törzsben)
+        "text_only_max_width":  "80%",
+        "text_only_font_size":  "6mm",
+        "text_only_line_height":"1.5",
+        "text_align": "left",
+        "text_html": thanks_html,         # ← a beolvasott HTML
+    }
+
+    # 5) oldalszám: jellemzően 1 cover van előtte → ez legyen 2. oldal
+    page_config = {
+        "start": 1,
+        "pre_content_pages": 1,   # ha cover van előtte
+        "enabled": True,
+    }
+
+    context = {
+        "title": "Riport – Köszönetnyilvánítás",
+        "brand_css_path": str(brand_css_path.resolve()),
+        "content_logo_path": content_logo_path,
+        "sections": [section],
+        "page_config": page_config,
+        # NINCS 'cover' a contextben → most csak a content oldalt rendereljük külön
+    }
+
+    out_html = render_to_html_file(
+        template_name="base.html.j2",
+        context=context,
+        output_filename="thanks.html",
+    )
+    console.print(f"[green]OK[/green] HTML létrehozva: {out_html}")
+    console.print("→ PDF:  msr pdf-from-html thanks.html")
+
+
 
 # ──────────────────────────────────────────────────────────────
 # oldalszerkezet ellenőrzése (YAML) – csak listáz
 # ──────────────────────────────────────────────────────────────
-from .data.manifest import load_structure, summarize  # ← tedd a többi import közé
-
 @app.command("pages-validate")
 def pages_validate(struct_path: str = typer.Option(
     None,
