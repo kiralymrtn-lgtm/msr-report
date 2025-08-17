@@ -61,6 +61,13 @@
       {% if s.logo_height     %}--content-logo-height:     {{ s.logo_height     }};{% endif %}  {# ADDED: fix logómagasság #}
     "
   >
+
+    {# oldalszám számítása #}
+    {% set pg_start = (page_config.start if page_config and page_config.start is defined else 1) %}
+    {% set pre_pages = (page_config.pre_content_pages if page_config and page_config.pre_content_pages is defined else (1 if cover else 0)) %}
+    {% set page_no = pg_start + pre_pages + loop.index0 %}
+
+
     <!-- bal felső 'secondary' színű sáv a címmel -->
     <div class="content-header">
       <h2 class="content-title" style="margin:0; padding-left: var(--content-title-left-pad);">
@@ -79,6 +86,11 @@
       <div class="content-logo">
         <img src="file://{{ section_logo }}" alt="Logo">
       </div>
+    {% endif %}
+
+    <!-- oldalszám (csak content oldalakon) -->
+    {% if (page_config is not defined) or (page_config.enabled is not defined) or page_config.enabled %}
+      <div class="page-number">- {{ page_no }} -</div>
     {% endif %}
 
     <!-- a tényleges tartalom (grafikonok, táblák, szöveg) a sáv alatt -->
