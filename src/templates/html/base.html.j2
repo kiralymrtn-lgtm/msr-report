@@ -27,7 +27,6 @@
       {% endif %}
     "
   >
-
     {% if cover.logo_path %}
       <div class="logo-block">
         <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
@@ -47,8 +46,7 @@
         {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
       {% endif %}
     </div>
-
-  </div>  <!-- <<< FONTOS: lezárjuk a cover oldalt -->
+  </div>  <!-- cover vége -->
 {% endif %}
 
 {# ===== TARTALMI OLDALAK (sections) ===== #}
@@ -60,6 +58,7 @@
       {% if s.header_width  %}--content-header-width:  {{ s.header_width  }};{% endif %}
       {% if s.title_main_size %}--content-title-main-size: {{ s.title_main_size }};{% endif %}
       {% if s.title_sub_size  %}--content-title-sub-size:  {{ s.title_sub_size  }};{% endif %}
+      {% if s.logo_height     %}--content-logo-height:     {{ s.logo_height     }};{% endif %}  {# ADDED: fix logómagasság #}
     "
   >
     <!-- bal felső 'secondary' színű sáv a címmel -->
@@ -72,22 +71,20 @@
 
     <!-- jobb felső logo -->
     {# melyik logót használjuk ezen az oldalon?
-        - ha a section ad külön 'logo_path'-ot → az nyer
-        - különben a globális 'content_logo_path'
-        - és csak akkor rajzoljuk ki, ha nincs explicit tiltás (s.hide_logo) #}
+       - ha a section ad külön 'logo_path'-ot → az nyer
+       - különben a globális 'content_logo_path'
+       - és csak akkor rajzoljuk ki, ha nincs explicit tiltás (s.hide_logo) #}
     {% set section_logo = (s.logo_path if s.logo_path is defined and s.logo_path else content_logo_path) %}
     {% if (s.hide_logo is not defined or not s.hide_logo) and section_logo %}
       <div class="content-logo">
-          <img src="file://{{ section_logo }}" alt="Logo">
+        <img src="file://{{ section_logo }}" alt="Logo">
       </div>
     {% endif %}
-
-
 
     <!-- a tényleges tartalom (grafikonok, táblák, szöveg) a sáv alatt -->
     <div class="content-body">
       {% if s.paragraph %}
-        <p>{{ s.paragraph | safe }}</p>  {# ← HTML engedélyezése a demo szövegben #}
+        <p>{{ s.paragraph | safe }}</p>
       {% endif %}
 
       {% if s.image_path %}
@@ -96,23 +93,22 @@
         </figure>
       {% endif %}
 
-        {% if s.table %}
-          <table class="table" style="border-collapse:collapse; width:100%;">
-            {% for row in s.table %}
-              {% set is_header = loop.first %}
-              <tr>
-                {% for cell in row %}
-                  {% if is_header %}
-                    <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
-                  {% else %}
-                    <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
-                  {% endif %}
-                {% endfor %}
-              </tr>
-            {% endfor %}
-          </table>
-        {% endif %}
-
+      {% if s.table %}
+        <table class="table" style="border-collapse:collapse; width:100%;">
+          {% for row in s.table %}
+            {% set is_header = loop.first %}
+            <tr>
+              {% for cell in row %}
+                {% if is_header %}
+                  <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
+                {% else %}
+                  <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </table>
+      {% endif %}
     </div>
   </div>
 {% endfor %}
