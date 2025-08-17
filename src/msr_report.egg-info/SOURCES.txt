@@ -5,6 +5,7 @@ src/msr/brand.py
 src/msr/cli.py
 src/msr/charts/__init__.py
 src/msr/charts/bar.py
+src/msr/data/manifest.py
 src/msr/html/__init__.py
 src/msr/html/builder.py
 src/msr/pdf/__init__.py

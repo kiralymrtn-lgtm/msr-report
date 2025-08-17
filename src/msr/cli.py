@@ -6,9 +6,11 @@ parancsok:
 - render-cover-demo: címlap (cover) demó
 - render-content-demo: tartalmi oldal (content) demó – sorszámozással
 - pdf-from-html: HTML -> PDF konvertálás
+- pages-validate: riport struktúra bemutatása
 """
 import typer
 from rich.console import Console
+from pathlib import Path
 
 console = Console()
 
@@ -246,6 +248,46 @@ def render_content_demo() -> None:
     )
     console.print(f"[green]OK[/green] Content HTML (váz) létrehozva: {out_html}")
     console.print("→ PDF:  msr pdf-from-html demo_content.html")
+
+
+# ──────────────────────────────────────────────────────────────
+# oldalszerkezet ellenőrzése (YAML) – csak listáz
+# ──────────────────────────────────────────────────────────────
+from .data.manifest import load_structure, summarize  # ← tedd a többi import közé
+
+@app.command("pages-validate")
+def pages_validate(struct_path: str = typer.Option(
+    None,
+    help="Opcionális: egyedi YAML útvonal. Alapértelmezés: local/config/report_structure.yaml"
+)) -> None:
+    """
+    Beolvassa a local/config/report_structure.yaml fájlt és kilistázza az oldalakat:
+    sorszám, típus (COVER/CONTENT), és a címek kivonata.
+    """
+    # 1) betöltés
+    path = Path(struct_path) if struct_path else None
+    struct = load_structure(path)
+    pages = struct["pages"]
+
+    # 2) összegzés
+    total, covers, contents = summarize(struct)
+    console.print(f"[bold]Manifeszt:[/bold] {struct['path']}")
+    console.print(f"Összes oldal: [cyan]{total}[/cyan]  |  Cover: [magenta]{covers}[/magenta]  |  Content: [green]{contents}[/green]")
+    console.print("-" * 60)
+
+    # 3) részletes lista
+    for idx, p in enumerate(pages, start=1):
+        kind = p["kind"]
+        label = "COVER " if kind == "cover" else "CONTENT"
+        if kind == "cover":
+            t = p.get("cover", {}).get("title", {})
+            title_preview = " ".join(x for x in [t.get("line1"), t.get("line2"), t.get("year")] if x)
+        else:
+            c = p.get("content", {})
+            title_preview = " ".join(x for x in [c.get("title_main"), c.get("title_sub")] if x)
+
+        console.print(f"{idx:>2}. {label:8} {title_preview}")
+
 
 
 def main() -> None:

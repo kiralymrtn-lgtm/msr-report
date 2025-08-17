@@ -14,6 +14,7 @@ dependencies = [
   "jinja2>=3.1.4",        # HTML sablonmotor, amivel változókat/ciklusokat tudsz a html-be tenni
   "playwright>=1.45.0",   # headless böngésző (Chromium) PDF-hez
   "matplotlib>=3.8.0",    # matplotlib rajzolja a png-t. nagy előny: te döntöd el a méretet (inch-ben), a dpi-t, a betűket
+  "pyyaml>=6.0",          # YAML
 ]
 
 [tool.setuptools.packages.find] #A setuptools itt keresi a csomagokat: a src/ alatt, és csak azokat, amik msr… névvel kezdődnek. Így nem pakol bele véletlen dolgokat
