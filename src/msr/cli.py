@@ -7,6 +7,7 @@ parancsok:
 - render-content-demo: tartalmi oldal (content) demó – sorszámozással
 - pdf-from-html: HTML -> PDF konvertálás
 - pages-validate: riport struktúra bemutatása
+- render-structure: teljes riport a YAML-manifesztből
 """
 import typer
 from rich.console import Console
@@ -398,6 +399,162 @@ def render_thanks() -> None:
     console.print("→ PDF:  msr pdf-from-html thanks.html")
 
 
+
+# ──────────────────────────────────────────────────────────────
+# teljes riport renderelése YAML-ből (cover + content)
+# ──────────────────────────────────────────────────────────────
+@app.command("render-structure")
+def render_structure(
+    struct_path: str = typer.Option(
+        None,
+        help="Opcionális: egyedi YAML útvonal. Alapértelmezés: local/config/report_structure.yaml",
+    )
+) -> None:
+    """
+    Beolvassa a report_structure.yaml-t és a teljes decket egyben rendereli:
+    - az első 'cover' oldal (ha van) + az összes 'content' oldal (köszönet is).
+    - oldalszámozást a YAML page_config-ből veszi (cover NEM jelenít meg számot).
+    Kimenet: local/output/html/report_structure.html
+    """
+    # 1) CSS ellenőrzés
+    brand_css_path = local_path("assets", "css", "brand.css")
+    if not brand_css_path.exists():
+        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+        raise typer.Exit(code=1)
+
+    # 2) Brand + logó
+    brand = get_brand()
+    content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
+
+    # 3) YAML betöltése
+    path = Path(struct_path) if struct_path else None
+    struct = load_structure(path)
+    pages = struct.get("pages", [])
+    page_config = struct.get("page_config", {})
+
+    # 4) Segédfüggvény: relatív local/ → abszolút path
+    def _lp(rel: str) -> Path:
+        rel = (rel or "").strip("/")
+        if not rel:
+            return local_path()  # local gyökér
+        parts = [p for p in rel.split("/") if p]
+        return local_path(*parts)
+
+    # 5) Cover + content összeállítása a sablon számára
+    cover_ctx = None
+    sections: list[dict] = []
+
+    # opcionális: alsó (második) cover háttér
+    bg_bottom = local_path("assets", "backgrounds", "cover_bg_bottom.png")
+    bg_bottom_abs = str(bg_bottom.resolve()) if bg_bottom.exists() else None
+
+    for p in pages:
+        kind = p.get("kind") or p.get("type")  # támogatjuk a 'type' régi kulcsot is
+
+        if kind == "cover":
+            # csak az ELSŐ covert használjuk itt; (később akár több cover is támogatott lehet)
+            if cover_ctx is None:
+                cov = p.get("cover", {})
+                title = cov.get("title") or p.get("title")  # fallback a rövid sémára
+                if isinstance(title, str):
+                    title_dict = {"line1": title, "line2": "", "year": ""}
+                elif isinstance(title, dict):
+                    title_dict = {
+                        "line1": title.get("line1") or title.get("text") or "",
+                        "line2": title.get("line2") or "",
+                        "year":  title.get("year")  or "",
+                    }
+                else:
+                    title_dict = {"line1": "", "line2": "", "year": ""}
+
+                cover_ctx = {
+                    "logo_path": str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None,
+                    "background_path": str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None,
+                    "background_bottom_path": bg_bottom_abs,
+                    "title": title_dict,
+                }
+
+        elif kind == "content":
+            c = p.get("content", {})
+            section: dict = {}
+
+            # layout
+            section["layout"] = c.get("layout") or "split"  # default: split
+
+            # fejléc (bal felső sáv)
+            header = c.get("header") or {}
+            show_header = header.get("show", True)
+            if "height" in header:
+                section["header_height"] = header["height"]
+            elif not show_header:
+                section["header_height"] = "0mm"
+            if "width" in header:
+                section["header_width"] = header["width"]
+            elif not show_header:
+                section["header_width"] = "0%"
+
+            # címek a sávba
+            if c.get("title_main"): section["title_main"] = c["title_main"]
+            if c.get("title_sub"):  section["title_sub"]  = c["title_sub"]
+
+            # per-oldal logó finomhangolás
+            logo = c.get("logo") or {}
+            if logo.get("show") is False:
+                section["hide_logo"] = True
+            if logo.get("height"):    section["logo_height"] = logo["height"]
+            if logo.get("right_pad"): section["logo_right_pad"] = logo["right_pad"]
+
+            # TEXT layout tartalom
+            if section["layout"] == "text":
+                txt = c.get("text") or {}
+                if txt.get("max_width"):    section["text_only_max_width"]    = txt["max_width"]
+                if txt.get("font_size"):    section["text_only_font_size"]    = txt["font_size"]
+                if txt.get("line_height"):  section["text_only_line_height"]  = str(txt["line_height"])
+                if txt.get("align"):        section["text_align"]             = txt["align"]
+                if txt.get("file"):
+                    f = _lp(txt["file"])
+                    if not f.exists():
+                        console.print(f"[yellow]Figyelem:[/yellow] hiányzik tartalom fájl: {f}")
+                    else:
+                        section["text_html"] = f.read_text(encoding="utf-8")
+
+            # SPLIT layout tartalom
+            if section["layout"] == "split":
+                if c.get("image_path"):
+                    img = _lp(c["image_path"])
+                    section["image_path"] = str(img.resolve()) if img.exists() else str(img)
+                if c.get("explain_title"):       section["explain_title"]       = c["explain_title"]
+                if c.get("explain_paragraph"):   section["explain_paragraph"]   = c["explain_paragraph"]
+                if c.get("explain_html"):        section["explain_html"]        = c["explain_html"]
+                if c.get("split_left_width"):    section["split_left_width"]    = c["split_left_width"]
+                if c.get("split_gap"):           section["split_gap"]           = c["split_gap"]
+                if c.get("explain_title_size"):  section["explain_title_size"]  = c["explain_title_size"]
+
+            sections.append(section)
+
+    # 6) Page numbering – YAML-ből, vagy defaultok
+    if cover_ctx and "pre_content_pages" not in page_config:
+        page_config["pre_content_pages"] = 1
+    page_config.setdefault("enabled", True)
+    page_config.setdefault("start", 1)
+
+    # 7) Render
+    context = {
+        "title": "Riport (YAML-ből)",
+        "brand_css_path": str(brand_css_path.resolve()),
+        "cover": cover_ctx,                        # None, ha nem volt cover
+        "sections": sections,                      # összes content oldal
+        "content_logo_path": content_logo_path,    # jobb felső logó default
+        "page_config": page_config,
+    }
+
+    out_html = render_to_html_file(
+        template_name="base.html.j2",
+        context=context,
+        output_filename="report_structure.html",
+    )
+    console.print(f"[green]OK[/green] Teljes riport HTML létrehozva: {out_html}")
+    console.print("→ PDF:  msr pdf-from-html report_structure.html")
 
 # ──────────────────────────────────────────────────────────────
 # oldalszerkezet ellenőrzése (YAML) – csak listáz
