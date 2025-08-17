@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>{{ title or "Riport" }}</title>
 
-  {# brand CSS abszolút file:// útvonallal #}
   {% if brand_css_path %}
     <link rel="stylesheet" href="file://{{ brand_css_path }}">
   {% endif %}
@@ -13,172 +12,217 @@
 </head>
 <body>
 
-{# ===== COVER csak akkor, ha van cover a contextben ===== #}
-{% if cover %}
-  <!-- címoldal (cover) – ha van bármelyik háttérkép, kapja a 'cover' osztályt -->
-  <div
-    class="page title-page {% if cover.background_path or cover.background_bottom_path %}cover{% endif %}"
-    style="
-      {% if cover.background_path %}
-        --cover-bg-top: url('file://{{ cover.background_path }}');
-      {% endif %}
-      {% if cover.background_bottom_path %}
-        --cover-bg-bottom: url('file://{{ cover.background_bottom_path }}');
-      {% endif %}
-    "
-  >
-    {% if cover.logo_path %}
-      <div class="logo-block">
-        <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
+{% if slides %}
+  {% for slide in slides %}
+    {% set page_no = (page_config.start if page_config and page_config.start is defined else 1) + loop.index0 %}
+
+    {% if slide.kind == "cover" %}
+      <div
+        class="page title-page {% if slide.background_path or slide.background_bottom_path %}cover{% endif %}"
+        style="
+          {% if slide.background_path %}
+            --cover-bg-top: url('file://{{ slide.background_path }}');
+          {% endif %}
+          {% if slide.background_bottom_path %}
+            --cover-bg-bottom: url('file://{{ slide.background_bottom_path }}');
+          {% endif %}
+        "
+      >
+        {% if slide.logo_path %}
+          <div class="logo-block">
+            <img class="brand-logo" src="file://{{ slide.logo_path }}" alt="Logo">
+          </div>
+        {% endif %}
+
+        <div class="title-block">
+          {% if slide.title %}
+            <div class="cover-title-line1">{{ slide.title.line1 }}</div>
+            <div class="cover-title-row2">
+              <div class="cover-title-line2">{{ slide.title.line2 }}</div>
+              <div class="cover-title-year">{{ slide.title.year }}</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    {% elif slide.kind == "content" %}
+      <div
+        class="page content-page"
+        style="
+          {% if slide.header_height %}--content-header-height: {{ slide.header_height }};{% endif %}
+          {% if slide.header_width  %}--content-header-width:  {{ slide.header_width  }};{% endif %}
+          {% if slide.title_main_size %}--content-title-main-size: {{ slide.title_main_size }};{% endif %}
+          {% if slide.title_sub_size  %}--content-title-sub-size:  {{ slide.title_sub_size  }};{% endif %}
+          {% if slide.logo_height     %}--content-logo-height:     {{ slide.logo_height     }};{% endif %}
+          {% if slide.logo_right_pad  %}--content-logo-right-pad:  {{ slide.logo_right_pad  }};{% endif %}
+        "
+      >
+        <div class="content-header">
+          <h2 class="content-title" style="margin:0; padding-left: var(--content-title-left-pad);">
+            <span class="content-title-main">{{ slide.title_main }}</span>
+            <span class="content-title-sub">{{ slide.title_sub }}</span>
+          </h2>
+        </div>
+
+        {% set section_logo = (slide.logo_path if slide.logo_path is defined and slide.logo_path else content_logo_path) %}
+        {% if (slide.hide_logo is not defined or not slide.hide_logo) and section_logo %}
+          <div class="content-logo">
+              <img src="file://{{ section_logo }}" alt="Logo">
+          </div>
+        {% endif %}
+
+        {% if (page_config is not defined) or (page_config.enabled is not defined) or page_config.enabled %}
+          <div class="page-number">- {{ page_no }} -</div>
+        {% endif %}
+
+        {% if slide.layout == "text" %}
+          <div class="content-body content-layout--text"
+               style="
+                 {% if slide.text_only_max_width   %}--text-only-max-width:   {{ slide.text_only_max_width }};{% endif %}
+                 {% if slide.text_only_font_size   %}--text-only-font-size:   {{ slide.text_only_font_size }};{% endif %}
+                 {% if slide.text_only_line_height %}--text-only-line-height: {{ slide.text_only_line_height }};{% endif %}
+               ">
+            <div class="text-only-block {% if slide.text_align == 'left' %}align-left{% endif %}">
+              {% if slide.text_html %}
+                {{ slide.text_html | safe }}
+              {% elif slide.paragraph %}
+                <p>{{ slide.paragraph }}</p>
+              {% else %}
+                <p class="small">[Text-only oldal – ide jön a szöveg]</p>
+              {% endif %}
+            </div>
+          </div>
+
+        {% elif slide.layout == "split" %}
+          <div class="content-body content-layout--split"
+               style="
+                 {% if slide.split_left_width %}--split-left-width: {{ slide.split_left_width }};{% endif %}
+                 {% if slide.split_gap       %}--split-gap:        {{ slide.split_gap }};{% endif %}
+                 {% if slide.explain_title_size %}--explain-title-font-size: {{ slide.explain_title_size }};{% endif %}
+               ">
+
+            <div class="split-left">
+              {% if slide.image_path %}
+                <img src="file://{{ slide.image_path }}" alt="">
+              {% endif %}
+              {% if slide.table %}
+                <table class="table">
+                  {% for row in slide.table %}
+                    {% set is_header = loop.first %}
+                    <tr>
+                      {% for cell in row %}
+                        {% if is_header %}
+                          <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
+                        {% else %}
+                          <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
+                        {% endif %}
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </table>
+              {% endif %}
+            </div>
+
+            <div class="split-right">
+              {% if slide.explain_title %}
+                <div class="explain-title">{{ slide.explain_title }}</div>
+              {% endif %}
+              <div class="explain-body">
+                {% if slide.explain_html %}
+                  {{ slide.explain_html | safe }}
+                {% elif slide.explain_paragraph %}
+                  <p>{{ slide.explain_paragraph }}</p>
+                {% else %}
+                  <p class="small">[Magyarázó szöveg helye]</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+        {% else %}
+          <div class="content-body">
+            {% if slide.paragraph %}
+              <p>{{ slide.paragraph | safe }}</p>
+            {% endif %}
+            {% if slide.image_path %}
+              <figure style="margin: 8mm 0;">
+                <img src="file://{{ slide.image_path }}" alt="" style="max-width:100%; height:auto;">
+              </figure>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
     {% endif %}
+  {% endfor %}
 
-    <div class="title-block">
-      {% if cover.title %}
-        <div class="cover-title-line1">{{ cover.title.line1 }}</div>
-        <div class="cover-title-row2">
-          <div class="cover-title-line2">{{ cover.title.line2 }}</div>
-          <div class="cover-title-year">{{ cover.title.year }}</div>
+{% else %}
+  {# ===== FALLBACK: régi séma – 1 cover + sections ===== #}
+  {% if cover %}
+    <div
+      class="page title-page {% if cover.background_path or cover.background_bottom_path %}cover{% endif %}"
+      style="
+        {% if cover.background_path %}
+          --cover-bg-top: url('file://{{ cover.background_path }}');
+        {% endif %}
+        {% if cover.background_bottom_path %}
+          --cover-bg-bottom: url('file://{{ cover.background_bottom_path }}');
+        {% endif %}
+      "
+    >
+      {% if cover.logo_path %}
+        <div class="logo-block">
+          <img class="brand-logo" src="file://{{ cover.logo_path }}" alt="Logo">
         </div>
-      {% else %}
-        <!-- fallback a régi h1-re, ha nincs felbontott cím -->
-        <h1>{{ report_title }}</h1>
-        {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
       {% endif %}
+
+      <div class="title-block">
+        {% if cover.title %}
+          <div class="cover-title-line1">{{ cover.title.line1 }}</div>
+          <div class="cover-title-row2">
+            <div class="cover-title-line2">{{ cover.title.line2 }}</div>
+            <div class="cover-title-year">{{ cover.title.year }}</div>
+          </div>
+        {% else %}
+          <h1>{{ report_title }}</h1>
+          {% if report_subtitle %}<div class="meta">{{ report_subtitle }}</div>{% endif %}
+        {% endif %}
+      </div>
     </div>
-  </div>  <!-- cover vége -->
-{% endif %}
+  {% endif %}
 
-{# ===== TARTALMI OLDALAK (sections) ===== #}
-{% for s in sections %}
-  <div
-    class="page content-page"
-    style="
-      {% if s.header_height %}--content-header-height: {{ s.header_height }};{% endif %}
-      {% if s.header_width  %}--content-header-width:  {{ s.header_width  }};{% endif %}
-      {% if s.title_main_size %}--content-title-main-size: {{ s.title_main_size }};{% endif %}
-      {% if s.title_sub_size  %}--content-title-sub-size:  {{ s.title_sub_size  }};{% endif %}
-      {% if s.logo_height     %}--content-logo-height:     {{ s.logo_height     }};{% endif %}  {# ADDED: fix logómagasság #}
-    "
-  >
-
-    {# oldalszám számítása #}
+  {% for s in sections %}
     {% set pg_start = (page_config.start if page_config and page_config.start is defined else 1) %}
     {% set pre_pages = (page_config.pre_content_pages if page_config and page_config.pre_content_pages is defined else (1 if cover else 0)) %}
     {% set page_no = pg_start + pre_pages + loop.index0 %}
 
-
-    <!-- bal felső 'secondary' színű sáv a címmel -->
-    <div class="content-header">
-      <h2 class="content-title" style="margin:0; padding-left: var(--content-title-left-pad);">
-        <span class="content-title-main">{{ s.title_main }}</span>
-        <span class="content-title-sub">{{ s.title_sub }}</span>
-      </h2>
-    </div>
-
-    <!-- jobb felső logo -->
-    {# melyik logót használjuk ezen az oldalon?
-       - ha a section ad külön 'logo_path'-ot → az nyer
-       - különben a globális 'content_logo_path'
-       - és csak akkor rajzoljuk ki, ha nincs explicit tiltás (s.hide_logo) #}
-    {% set section_logo = (s.logo_path if s.logo_path is defined and s.logo_path else content_logo_path) %}
-    {% if (s.hide_logo is not defined or not s.hide_logo) and section_logo %}
-      <div class="content-logo">
-        <img src="file://{{ section_logo }}" alt="Logo">
-      </div>
-    {% endif %}
-
-    <!-- oldalszám (csak content oldalakon) -->
-    {% if (page_config is not defined) or (page_config.enabled is not defined) or page_config.enabled %}
-      <div class="page-number">- {{ page_no }} -</div>
-    {% endif %}
-
-    <!-- a tényleges tartalom (grafikonok, táblák, szöveg) a sáv alatt -->
-    {#
-      ÚJ: két layout-típus
-      - s.layout: "text"   → text-only
-      - s.layout: "split"  → két hasáb (bal: vizuál, jobb: magyarázat)
-
-      Per-oldal CSS finomhangolás (opcionális):
-        style="
-          --text-only-max-width: 80%;
-          --split-left-width: 58%;
-          --split-gap: 8mm;
-          --explain-title-font-size: 7mm;
-        "
-    #}
-
-    {% if s.layout == "text" %}
-      <div class="content-body content-layout--text"
-           style="
-             {% if s.text_only_max_width %}--text-only-max-width: {{ s.text_only_max_width }};{% endif %}
-             {% if s.text_only_font_size %}--text-only-font-size: {{ s.text_only_font_size }};{% endif %}
-             {% if s.text_only_line_height %}--text-only-line-height: {{ s.text_only_line_height }};{% endif %}
-           ">
-        <div class="text-only-block {% if s.text_align == 'left' %}align-left{% endif %}">
-          {# használhatod s.text_html (raw HTML) vagy s.paragraph (plain) mezőt #}
-          {% if s.text_html %}
-            {{ s.text_html | safe }}
-          {% elif s.paragraph %}
-            <p>{{ s.paragraph }}</p>
-          {% else %}
-            <p class="small">[Text-only oldal – ide jön a szöveg]</p>
-          {% endif %}
-        </div>
+    <div
+      class="page content-page"
+      style="
+        {% if s.header_height %}--content-header-height: {{ s.header_height }};{% endif %}
+        {% if s.header_width  %}--content-header-width:  {{ s.header_width  }};{% endif %}
+        {% if s.title_main_size %}--content-title-main-size: {{ s.title_main_size }};{% endif %}
+        {% if s.title_sub_size  %}--content-title-sub-size:  {{ s.title_sub_size  }};{% endif %}
+        {% if s.logo_height     %}--content-logo-height:     {{ s.logo_height     }};{% endif %}
+      "
+    >
+      <div class="content-header">
+        <h2 class="content-title" style="margin:0; padding-left: var(--content-title-left-pad);">
+          <span class="content-title-main">{{ s.title_main }}</span>
+          <span class="content-title-sub">{{ s.title_sub }}</span>
+        </h2>
       </div>
 
-    {% elif s.layout == "split" %}
-      <div class="content-body content-layout--split"
-           style="
-             {% if s.split_left_width %}--split-left-width: {{ s.split_left_width }};{% endif %}
-             {% if s.split_gap %}--split-gap: {{ s.split_gap }};{% endif %}
-             {% if s.explain_title_size %}--explain-title-font-size: {{ s.explain_title_size }};{% endif %}
-           ">
-
-        <!-- BAL HASÁB: kép / grafikon / tábla -->
-        <div class="split-left">
-          {% if s.image_path %}
-            <img src="file://{{ s.image_path }}" alt="">
-          {% endif %}
-
-          {% if s.table %}
-            <table class="table">
-              {% for row in s.table %}
-                {% set is_header = loop.first %}
-                <tr>
-                  {% for cell in row %}
-                    {% if is_header %}
-                      <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
-                    {% else %}
-                      <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
-                    {% endif %}
-                  {% endfor %}
-                </tr>
-              {% endfor %}
-            </table>
-          {% endif %}
+      {% set section_logo = (s.logo_path if s.logo_path is defined and s.logo_path else content_logo_path) %}
+      {% if (s.hide_logo is not defined or not s.hide_logo) and section_logo %}
+        <div class="content-logo">
+            <img src="file://{{ section_logo }}" alt="Logo">
         </div>
+      {% endif %}
 
-        <!-- JOBB HASÁB: cím „chip” + magyarázó szöveg -->
-        <div class="split-right">
-          {% if s.explain_title %}
-            <div class="explain-title">{{ s.explain_title }}</div>
-          {% endif %}
+      {% if (page_config is not defined) or (page_config.enabled is not defined) or page_config.enabled %}
+        <div class="page-number">- {{ page_no }} -</div>
+      {% endif %}
 
-          <div class="explain-body">
-            {% if s.explain_html %}
-              {{ s.explain_html | safe }}
-            {% elif s.explain_paragraph %}
-              <p>{{ s.explain_paragraph }}</p>
-            {% else %}
-              <p class="small">[Magyarázó szöveg helye]</p>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-    {% else %}
-      {# fallback: ha nincs layout megadva, a régi egyszerű test #}
       <div class="content-body">
         {% if s.paragraph %}
           <p>{{ s.paragraph | safe }}</p>
@@ -205,11 +249,9 @@
           </table>
         {% endif %}
       </div>
-    {% endif %}
-
     </div>
-  </div>
-{% endfor %}
+  {% endfor %}
+{% endif %}
 
 </body>
 </html>

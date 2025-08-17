@@ -403,6 +403,9 @@ def render_thanks() -> None:
 # ──────────────────────────────────────────────────────────────
 # teljes riport renderelése YAML-ből (cover + content)
 # ──────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────
+# teljes riport renderelése YAML-ből (több COVER is támogatott)
+# ──────────────────────────────────────────────────────────────
 @app.command("render-structure")
 def render_structure(
     struct_path: str = typer.Option(
@@ -412,8 +415,10 @@ def render_structure(
 ) -> None:
     """
     Beolvassa a report_structure.yaml-t és a teljes decket egyben rendereli:
-    - az első 'cover' oldal (ha van) + az összes 'content' oldal (köszönet is).
-    - oldalszámozást a YAML page_config-ből veszi (cover NEM jelenít meg számot).
+    - TÖBB 'cover' oldal is támogatott (mind bekerül a kimenetbe).
+    - 'content' oldalak a megszokott fejléc/logó/layout logikával.
+    - Oldalszámozás: minden slide beleszámít, de csak a content oldalak JELENÍTIK MEG.
+      (page_number = page_config.start + slide_index; a cover is számít, csak nem látszik rajta.)
     Kimenet: local/output/html/report_structure.html
     """
     # 1) CSS ellenőrzés
@@ -424,13 +429,13 @@ def render_structure(
 
     # 2) Brand + logó
     brand = get_brand()
-    content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
+    default_logo = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
 
     # 3) YAML betöltése
     path = Path(struct_path) if struct_path else None
     struct = load_structure(path)
     pages = struct.get("pages", [])
-    page_config = struct.get("page_config", {})
+    page_config = struct.get("page_config", {}) or {}
 
     # 4) Segédfüggvény: relatív local/ → abszolút path
     def _lp(rel: str) -> Path:
@@ -440,9 +445,8 @@ def render_structure(
         parts = [p for p in rel.split("/") if p]
         return local_path(*parts)
 
-    # 5) Cover + content összeállítása a sablon számára
-    cover_ctx = None
-    sections: list[dict] = []
+    # 5) Slides (egységes, sorrendtartó lista: cover VAGY content)
+    slides: list[dict] = []
 
     # opcionális: alsó (második) cover háttér
     bg_bottom = local_path("assets", "backgrounds", "cover_bg_bottom.png")
@@ -452,34 +456,34 @@ def render_structure(
         kind = p.get("kind") or p.get("type")  # támogatjuk a 'type' régi kulcsot is
 
         if kind == "cover":
-            # csak az ELSŐ covert használjuk itt; (később akár több cover is támogatott lehet)
-            if cover_ctx is None:
-                cov = p.get("cover", {})
-                title = cov.get("title") or p.get("title")  # fallback a rövid sémára
-                if isinstance(title, str):
-                    title_dict = {"line1": title, "line2": "", "year": ""}
-                elif isinstance(title, dict):
-                    title_dict = {
-                        "line1": title.get("line1") or title.get("text") or "",
-                        "line2": title.get("line2") or "",
-                        "year":  title.get("year")  or "",
-                    }
-                else:
-                    title_dict = {"line1": "", "line2": "", "year": ""}
+            cov = p.get("cover", {})
+            title = cov.get("title") or p.get("title")  # fallback a rövid sémára
 
-                cover_ctx = {
-                    "logo_path": str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None,
-                    "background_path": str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None,
-                    "background_bottom_path": bg_bottom_abs,
-                    "title": title_dict,
+            if isinstance(title, str):
+                title_dict = {"line1": title, "line2": "", "year": ""}
+            elif isinstance(title, dict):
+                title_dict = {
+                    "line1": title.get("line1") or title.get("text") or "",
+                    "line2": title.get("line2") or "",
+                    "year":  title.get("year")  or "",
                 }
+            else:
+                title_dict = {"line1": "", "line2": "", "year": ""}
+
+            slides.append({
+                "kind": "cover",
+                "logo_path": default_logo,
+                "background_path": str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None,
+                "background_bottom_path": bg_bottom_abs,
+                "title": title_dict,
+            })
 
         elif kind == "content":
-            c = p.get("content", {})
-            section: dict = {}
+            c = p.get("content", {}) or {}
+            section: dict = {"kind": "content"}
 
             # layout
-            section["layout"] = c.get("layout") or "split"  # default: split
+            section["layout"] = c.get("layout") or "split"
 
             # fejléc (bal felső sáv)
             header = c.get("header") or {}
@@ -530,21 +534,28 @@ def render_structure(
                 if c.get("split_gap"):           section["split_gap"]           = c["split_gap"]
                 if c.get("explain_title_size"):  section["explain_title_size"]  = c["explain_title_size"]
 
-            sections.append(section)
+            slides.append(section)
+
+        else:
+            console.print(f"[yellow]Ismeretlen 'kind':[/yellow] {kind!r} – oldal kihagyva.")
 
     # 6) Page numbering – YAML-ből, vagy defaultok
-    if cover_ctx and "pre_content_pages" not in page_config:
-        page_config["pre_content_pages"] = 1
     page_config.setdefault("enabled", True)
     page_config.setdefault("start", 1)
+    # (NINCS szükség pre_content_pages-re, mert a page_no = start + loop.index0 logikát használjuk.)
 
-    # 7) Render
+    # 7) Fallback mezők a régi sablonhoz (ha más parancsok használnák)
+    first_cover = next((s for s in slides if s.get("kind") == "cover"), None)
+    only_sections = [s for s in slides if s.get("kind") == "content"]
+
+    # 8) Render
     context = {
         "title": "Riport (YAML-ből)",
         "brand_css_path": str(brand_css_path.resolve()),
-        "cover": cover_ctx,                        # None, ha nem volt cover
-        "sections": sections,                      # összes content oldal
-        "content_logo_path": content_logo_path,    # jobb felső logó default
+        "slides": slides,                          # ← ÚJ: egységes lista
+        "cover": first_cover,                      # fallback
+        "sections": only_sections,                 # fallback
+        "content_logo_path": default_logo,         # jobb felső logó default
         "page_config": page_config,
     }
 
