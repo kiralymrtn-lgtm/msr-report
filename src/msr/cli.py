@@ -196,80 +196,50 @@ def render_cover_demo() -> None:
 @app.command("render-content-demo")
 def render_content_demo() -> None:
     """
-    tartalmi oldal demó (formai váz): bal felső sárga sáv + cím, jobb felső logó,
-    és oldalszámozás a lap alján középen (a cover NEM jelenik meg, de ha lenne,
-    a sorszámba beleszámíthatjuk).
+    Csak content oldalak (cover nélkül), hogy lásd a sorszámozást.
+    Itt a page_config.pre_content_pages = 0, mert nincs cover az elején.
     """
-    # 1) css ellenőrzés
+    # 1) CSS ellenőrzés
     brand_css_path = local_path("assets", "css", "brand.css")
     if not brand_css_path.exists():
         console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
         raise typer.Exit(code=1)
 
-    # 2) brand és default content logó
+    # 2) BRAND + alapértelmezett content-logó
     brand = get_brand()
     content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
 
-    # 3) egy példa tartalmi oldal – CSAK formai váz
+    # 3) Formai váz (nincs kép/tábla, csak fejléc + test)
     sections = [
-        # 1) TEXT-ONLY
         {
-            "layout": "text",
-            "title_main": "KÖSZÖNETNYILVÁNÍTÁS",
-            "title_sub": "a válaszadók felé",
-            "text_html": """
-              <h3>A riport készítői</h3>
-              <p>Köszönjük a kitöltők munkáját és idejét. Ezt az oldalt text-only
-              layouttal készítettük, kényelmes olvasási sorhosszal.</p>
-            """,
-            "text_only_max_width": "70%",
-            "text_only_font_size": "12pt",
-            "text_only_line_height": "1.7",
-            "text_align": "left",
-            # a fejléc paraméterei (bal sáv és cím méret)
-            "header_width": "66.666%",
+            "header_width":  "66.666%",
             "header_height": "20mm",
-            "title_main_size": "10mm",
-            "title_sub_size": "8mm",
-        },
-        # 2) SPLIT
-        {
-            "layout": "split",
             "title_main": "VÁLLALATI",
-            "title_sub": "teljesítmény az elmúlt 12 hónapban",
-            # "image_path": str(chart_path.resolve()),  # ha generálsz előtte grafikon PNG-t
-            "explain_title": "Értelmezés",
-            "explain_paragraph": "Bal oldalt a mutató oszlopdiagramja, jobb oldalt rövid magyarázat.",
-            "split_left_width": "58%",
-            "split_gap": "8mm",
-            "explain_title_size": "7mm",
-            "header_width": "66.666%",
-            "header_height": "20mm",
-            "title_main_size": "12mm",
-            "title_sub_size": "10mm",
+            "title_sub":  "teljesítmény az elmúlt 12 hónapban",
+            # opcionális per-oldal finomhangolás:
+            # "logo_height": "10mm",   # → jobb felső sarokban lévő logó fix magassága
+            # "title_main_size": "9mm",
+            # "title_sub_size":  "7mm",
         },
     ]
 
-    # 4) context összeállítás
-    context = {
-        "title": "Riport (content demo)",
-        "brand_css_path": str(brand_css_path.resolve()),
-        "content_logo_path": content_logo_path,     # default content logó (coveren NEM jelenik meg)
-        # oldalszámozás beállításai:
-        # - start: honnan induljon a számozás
-        # - enabled: globális ki/bekapcsolás
-        # - pre_content_pages: NEM adjuk meg → a sablon automatikusan 1-et számol,
-        #   ha lenne cover (mert: pre_content_pages = 1 if cover else 0).
-        "page_config": {
-            "start": 1,
-            "enabled": True,
-            # "pre_content_pages": 1,  # ha mindenáron felül akarod írni (pl. több előoldal van)
-        },
-        "sections": sections,
-        # fontos: NINCS 'cover' kulcs → most nem renderelünk címlapot
+    # 4) Oldalszámozás beállítás (csak content oldalak jelenítik meg)
+    page_config = {
+        "start": 1,               # az első számozott oldal száma
+        "pre_content_pages": 0,   # cover nincs előttünk, így 0
+        "enabled": True,          # mutassuk az oldalszámot
     }
 
-    # 5) render
+    # 5) Render
+    context = {
+        "title": "Riport (content demo – váz)",
+        "brand_css_path": str(brand_css_path.resolve()),
+        "content_logo_path": content_logo_path,
+        "sections": sections,
+        "page_config": page_config,
+        # fontos: NINCS 'cover' kulcs → a cover nem jelenik meg
+    }
+
     out_html = render_to_html_file(
         template_name="base.html.j2",
         context=context,
@@ -277,6 +247,82 @@ def render_content_demo() -> None:
     )
     console.print(f"[green]OK[/green] Content HTML (váz) létrehozva: {out_html}")
     console.print("→ PDF:  msr pdf-from-html demo_content.html")
+
+
+# ──────────────────────────────────────────────────────────────
+# cover and content demo (cover + 2 minta oldal)
+# ──────────────────────────────────────────────────────────────
+@app.command("render-cover-and-content-demo")
+def render_cover_and_content_demo() -> None:
+    """
+    Cover + 2 content oldal demó, helyes oldalszámozással.
+    A cover NEM jelenít meg oldalszámot, de beleszámít (cover = 1, utána első content = 2).
+    """
+    # 1) CSS ellenőrzés
+    brand_css_path = local_path("assets", "css", "brand.css")
+    if not brand_css_path.exists():
+        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+        raise typer.Exit(code=1)
+
+    brand = get_brand()
+    content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
+
+    # 2) Cover assetek (felső + alsó háttér opcionális)
+    bg_bottom = local_path("assets", "backgrounds", "cover_bg_bottom.png")
+    cover = {
+        "logo_path": str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None,
+        "background_path": str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None,
+        "background_bottom_path": str(bg_bottom.resolve()) if bg_bottom.exists() else None,
+        "title": {
+            "line1": "VÁLLALKOZÓI",
+            "line2": "egyedi riport",
+            "year":  "2025",
+        },
+    }
+
+    # 3) Két egyszerű content oldal
+    sections = [
+        {
+            "header_width":  "66.666%",
+            "header_height": "20mm",
+            "title_main": "VÁLLALATI",
+            "title_sub":  "teljesítmény az elmúlt 12 hónapban",
+        },
+        {
+            "header_width":  "66.666%",
+            "header_height": "20mm",
+            "title_main": "MEGÍTÉLÉS",
+            "title_sub":  "ügyfél-visszajelzések összegzése",
+        },
+    ]
+
+    # 4) Oldalszámozás:
+    #    - a cover az 1. oldal (nem jelenít meg számot)
+    #    - az utána következő első content tehát 2-es számot kap
+    page_config = {
+        "start": 1,               # kezdő sorszám
+        "pre_content_pages": 1,   # cover az elején → 1
+        "enabled": True,          # content oldalakon jelenjen meg
+    }
+
+    # 5) Render
+    context = {
+        "title": "Riport (cover + content demo)",
+        "brand_css_path": str(brand_css_path.resolve()),
+        "cover": cover,
+        "content_logo_path": content_logo_path,
+        "sections": sections,
+        "page_config": page_config,
+    }
+
+    out_html = render_to_html_file(
+        template_name="base.html.j2",
+        context=context,
+        output_filename="demo_cover_content.html",
+    )
+    console.print(f"[green]OK[/green] Cover+Content HTML létrehozva: {out_html}")
+    console.print("→ PDF:  msr pdf-from-html demo_cover_content.html")
+
 
 
 # ──────────────────────────────────────────────────────────────
