@@ -1,0 +1,441 @@
+/* =======================================================================
+   brand.css – full-bleed, két rétegű cover háttér + felső fehér logósáv
+   + testreszabható cover cím (3 elem: sor1, sor2, év)
+   ======================================================================= */
+
+/* ——— Rubik fontok (normal + italic) ———
+   relatív útvonal a CSS-hez képest: ../fonts/…  */
+@font-face {
+  font-family: "Rubik";
+  src: url("../fonts/Rubik/Rubik-VariableFont_wght.woff2") format("woff2"),
+       url("../fonts/Rubik/Rubik-VariableFont_wght.ttf") format("truetype");
+  font-weight: 100 900;   /* a variable készlet valójában 100–900 */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Rubik";
+  src: url("../fonts/Rubik/Rubik-Italic-VariableFont_wght.woff2") format("woff2"),
+       url("../fonts/Rubik/Rubik-Italic-VariableFont_wght.ttf") format("truetype");
+  font-weight: 100 900;   /* a variable készlet valójában 100–900 */
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  /* — színek — */
+  --brand-primary: #243746;
+  --brand-secondary: #ffd500;
+  --text: #243746;
+  --muted: #f0aa00;
+  --bg: #ffffff;
+  --accent: #438f98;
+
+  /* — oldal méret (PDF, margó nélkül) — */
+  --page-width: 32cm;
+  --page-height: 18cm;
+
+  /* — tipográfia — */
+  --heading-font: "Rubik", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --body-font:    "Rubik", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+  /* hasznos magasság = teljes lapmagasság (mert margin=0) */
+  --content-height: var(--page-height);
+
+  /* ===== LOGÓ SÁV PARAMÉTEREK ===== */
+  --logo-width: 200mm;      /* LOGÓ szélesség a felső fehér sávban */
+  --logo-block-pad-y: 8mm;  /* függőleges padding a sávban */
+  --logo-top: 0;            /* sáv teteje a lap tetejétől */
+
+  /* ===== COVER CÍM PARAMÉTEREK ===== */
+  --cover-title-top: 80mm;      /* címblokk függőleges pozíciója */
+  --cover-title-left: 20mm;     /* címblokk bal margója */
+  --cover-title-maxw: 80%;      /* max szélesség */
+
+  --cover-title-line1-size: 22mm;   /* „VÁLLALKOZÓI” méret */
+  --cover-title-line2-size: 14mm;   /* „egyedi riport” méret */
+  --cover-title-year-size: 16mm;    /* „2025” méret */
+  --cover-title-gap: 3mm;           /* sor2 és év közti távolság */
+
+  /* ===== TARTALMI SLIDE FEJLÉC (BAL FELSŐ SÁV) ===== */
+  --content-header-width: 66%;      /* sáv szélessége (≈ 2/3) */
+  --content-header-height: 20mm;    /* sáv magassága */
+
+  /* cím tipográfia a sávban */
+  --content-title-left-pad: 10mm;   /* belső bal tér a sávban */
+  --content-title-gap: 4mm;         /* főcím és alcím közötti rés */
+
+  /* ↓↓↓ Ezek akkor hatnak, ha NINCS sablonból jövő inline override */
+  --content-title-main-size: 8mm;   /* főcím méret (Rubik, CAPS) */
+  --content-title-sub-size:  6mm;   /* alcím méret (Times, italic) */
+
+  /* színek a sávon belül (ha fehéret szeretnél: állítsd #fff-re) */
+  --content-title-main-color: var(--brand-primary);
+  --content-title-sub-color:  var(--brand-primary);
+
+  /* jobb felső logó paraméterek */
+  --content-logo-right-pad: 8mm;
+  --content-logo-height: 8mm;  /* ADDED: fix magasság (szekció-szinten felülírható) */
+  --content-logo-max-height: calc(var(--content-header-height) * 0.4); /* fallback */
+
+
+  /* ===== OLDALSZÁM (content oldalak) ===== */
+  /* megjelenítés */
+    --page-number-enabled: 1;         /* 1 = mutatjuk, 0 = elrejtjük globálisan */
+    --page-number-color: var(--brand-primary);
+    --page-number-size: 9pt;
+    --page-number-weight: 600;
+    /* pozíció és “padding” jellegű távolságok */
+    --page-number-bottom: 6mm;        /* mennyire legyen a lap aljától */
+    --page-number-pad-x: 4mm;         /* belső vízszintes padding a szöveg körül (ha háttér lenne) */
+    --page-number-pad-y: 2mm;         /* belső függőleges padding */
+
+
+  /* a sáv UTÁN mennyi hely legyen, mielőtt kezdődik a tartalom */
+  --content-body-gap: 8mm;
+}
+
+/* globális box-model – pontosabb mérés */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* PDF oldalméret – margó nélkül (full-bleed) */
+@page {
+  size: var(--page-width) var(--page-height);
+  margin: 0;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-size: 11pt;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* címsorok (általános) */
+h1, h2, h3 {
+  font-family: var(--heading-font);
+  color: var(--brand-primary);
+  margin: 0 0 8mm 0;
+}
+
+/* minden „page” pontosan egy lapnyi legyen */
+.page {
+  position: relative;
+  min-height: var(--content-height);
+  page-break-after: always;
+  overflow: hidden;
+}
+.page:last-child { page-break-after: auto; }
+
+/* címlap alap */
+.title-page {
+  height: var(--content-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ————— COVER BACKGROUND: KÉT RÉTEG ————— */
+.title-page.cover {
+  background-image: var(--cover-bg-top, none), var(--cover-bg-bottom, none);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* ————— FELSŐ FEHÉR LOGÓSÁV ————— */
+.logo-block {
+  position: absolute;
+  top: var(--logo-top);
+  left: 0;
+  width: 100%;
+  background: #fff;
+  z-index: 3;
+  padding: var(--logo-block-pad-y) 0;
+}
+.logo-block .brand-logo {
+  display: block;
+  width: var(--logo-width);
+  height: auto;
+  margin: 0 auto;
+}
+
+/* ————— COVER CÍM BLOKK ————— */
+.title-page .title-block {
+  position: absolute;
+  top: var(--cover-title-top);
+  left: var(--cover-title-left);
+  max-width: var(--cover-title-maxw);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  z-index: 2;
+}
+
+/* sor1: „VÁLLALKOZÓI” – fehér, nagybetű, vastag */
+.cover-title-line1 {
+  font-family: var(--heading-font);
+  font-size: var(--cover-title-line1-size);
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.00;
+  margin: 0 0 4mm 0;
+  text-transform: uppercase;
+}
+
+/* sor2: „egyedi riport” + „2025” – secondary szín, dőlt (csak a „egyedi riport”-on) */
+.cover-title-row2 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cover-title-gap);
+}
+.cover-title-line2 {
+  font-family: "Times New Roman", Times, serif;
+  font-size: var(--cover-title-line2-size);
+  color: var(--brand-secondary);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0;
+}
+.cover-title-year {
+  font-family: var(--heading-font);
+  font-size: var(--cover-title-year-size);
+  color: var(--brand-secondary);
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+}
+
+
+/* ————— TARTALMI ELEMEK ————— */
+.meta { color: var(--muted); margin-top: 4mm; }
+.small { font-size: 9pt; color: var(--muted); }
+.section-title { border-left: 6px solid var(--brand-secondary); padding-left: 6mm; }
+.card { border: 1px solid #e0e0e0; padding: 6mm; border-radius: 6px; }
+
+
+
+/* =======================================================================
+   TARTALMI OLDAL FEJLÉC-SÁV + CÍM
+   ======================================================================= */
+
+.content-page { background: #fff; }
+
+/* bal felső sáv – secondary színű téglalap, effektek nélkül */
+.content-page .content-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--content-header-width);
+  height: var(--content-header-height);
+  background: var(--brand-secondary);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* cím konténer a sávban */
+.content-page .content-header .content-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--content-title-gap);
+  margin: 0;
+  padding-left: var(--content-title-left-pad);
+}
+
+/* főcím: Rubik, CAPS */
+.content-title-main {
+  font-family: var(--heading-font);
+  font-size: var(--content-title-main-size);
+  color: var(--content-title-main-color);
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* alcím: Times New Roman, italic */
+.content-title-sub {
+  font-family: "Times New Roman", Times, serif;
+  font-size: var(--content-title-sub-size);
+  color: var(--content-title-sub-color);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* jobb felső sarokban lévő logó – ÁLLÍTHATÓ magasság */
+/* CHANGED: fallback-ot kapott, hogy ha nincs fix height, akkor a max-height logikát használjuk */
+.content-page .content-logo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: var(--content-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--content-logo-right-pad);
+  z-index: 2;
+}
+.content-page .content-logo img {
+  /* CHANGED: először a fix magasságot próbáljuk, különben a max-height számított értékét */
+  height: var(--content-logo-height, var(--content-logo-max-height));
+  width: auto;
+  display: block;
+}
+
+/* ===== OLDALSZÁM – csak content oldalakon rendereljük ===== */
+.content-page .page-number {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: var(--page-number-bottom);
+  color: var(--page-number-color);
+  font-size: var(--page-number-size);
+  font-weight: var(--page-number-weight);
+  line-height: 1;
+  padding: var(--page-number-pad-y) var(--page-number-pad-x);
+  z-index: 5;
+  /* ha dobozt akarsz köré:
+     background: rgba(255,255,255,0.7);
+     border-radius: 4mm;
+  */
+}
+/* globális ki/bekapcsolás (ha 0, rejtsd el) */
+:root[style*="--page-number-enabled: 0"] .content-page .page-number {
+  display: none;
+}
+
+/* a tényleges tartalom a sáv alatt */
+.content-page .content-body {
+  position: relative;
+  z-index: 0;
+  padding: 10mm;
+  margin-top: calc(var(--content-header-height) + var(--content-body-gap));
+}
+
+
+
+
+/* =======================================================================
+   TARTALMI LAYOUTOK
+   - 1) TEXT-ONLY: nagy szövegdoboz, középre húzható max-szélességgel
+   - 2) SPLIT: bal oldalon vizuál (chart/kép/tábla), jobb oldalon magyarázó blokk
+   ======================================================================= */
+
+/* ——— Globális, állítható változók a layoutokhoz ——— */
+:root {
+  /* TEXT-ONLY alap: max szélesség és sorhossz ergonomikus olvasáshoz */
+  --text-only-max-width: 75%;      /* lehet % vagy mm (pl. 220mm) */
+  --text-only-align: center;       /* left | center */
+  --text-only-font-size: 11pt;     /* felülírható oldalanként is */
+  --text-only-line-height: 1.6;
+  --text-only-color: var(--text);
+
+  /* SPLIT alap paraméterek */
+  --split-left-width: 55%;         /* bal hasáb szélessége (%, mm, px) */
+  --split-gap: 10mm;               /* hasábok közti tér */
+  --split-right-pad: 0mm;          /* jobb hasáb belső jobb padding (ha kell) */
+
+  /* Magyarázó címsor (jobb oldali „chip”) */
+  --explain-title-font-size: 8mm;
+  --explain-title-color: var(--text);         /* szöveg a chipen */
+  --explain-title-bg: var(--brand-secondary);  /* chip háttér */
+  --explain-title-pad-y: 2mm;
+  --explain-title-pad-x: 4mm;
+
+  /* Magyarázó szöveg tipó */
+  --explain-body-font-size: 10pt;
+  --explain-body-line-height: 1.55;
+  --explain-body-color: var(--text);
+}
+
+
+/* =========================
+   1) TEXT-ONLY LAYOUT
+   ========================= */
+.content-page .content-body.content-layout--text {
+  /* ez a layout egyetlen széles szövegdobozt tartalmaz */
+  display: block;
+}
+
+/* a szövegdoboz maga */
+.content-page .text-only-block {
+  margin: 0 auto;                                /* center alignment */
+  max-width: var(--text-only-max-width);
+  text-align: left;                               /* a törzsszöveg balra zárt */
+  font-size: var(--text-only-font-size, 11pt);
+  line-height: var(--text-only-line-height, 1.6);
+  color: var(--text-only-color, var(--text));
+}
+
+/* ha nem középre szeretnéd: s.text_align-ben felül lehet írni (inline CSS varral) */
+.content-page .text-only-block.align-left {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* opcionális alcímek a text-only blokkon belül */
+.content-page .text-only-block h3 {
+  margin: 0 0 4mm 0;
+  color: var(--brand-primary);
+}
+
+
+/* =========================
+   2) SPLIT LAYOUT
+   ========================= */
+.content-page .content-body.content-layout--split {
+  /* grid a stabil nyomtatási viselkedéshez */
+  display: grid;
+  grid-template-columns: var(--split-left-width) 1fr;
+  column-gap: var(--split-gap);
+  align-items: start;
+}
+
+/* bal hasáb – chart/kép/tábla */
+.content-page .split-left {
+  /* ha képet raksz ide, figyelj a max szélességre, hogy ne lógjon ki */
+}
+.content-page .split-left img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* táblázat minimal styling – már van fent egy egyszerű, itt csak finomhangolás, ha kell */
+.content-page .split-left table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* jobb hasáb – magyarázó blokk */
+.content-page .split-right {
+  padding-right: var(--split-right-pad);
+}
+
+/* magyarázó cím „chip” (secondary háttérrel) */
+.content-page .explain-title {
+  display: inline-block;
+  background: var(--explain-title-bg);
+  color: var(--explain-title-color);
+  font-size: var(--explain-title-font-size);
+  font-weight: 700;
+  padding: var(--explain-title-pad-y) var(--explain-title-pad-x);
+  margin: 0 0 4mm 0;               /* kis tér a cím és a szöveg között */
+}
+
+/* magyarázó szöveg (folyószöveg) */
+.content-page .explain-body {
+  font-size: var(--explain-body-font-size);
+  line-height: var(--explain-body-line-height);
+  color: var(--explain-body-color);
+}
+
+.content-page .explain-body p {
+  margin: 0 0 4mm 0;               /* bekezdések között tér */
+}

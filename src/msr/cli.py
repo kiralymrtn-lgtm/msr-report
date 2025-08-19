@@ -12,6 +12,9 @@ parancsok:
 import typer
 from rich.console import Console
 from pathlib import Path
+import pandas as pd
+from .charts.bar import save_column
+from .charts.radar import save_radar
 
 console = Console()
 
@@ -19,10 +22,18 @@ console = Console()
 from .utils.paths import local_path, ensure_dir, local_root
 from .html.builder import render_to_html_file
 from .pdf.html_to_pdf import html_to_pdf
-from .charts.bar import save_simple_bar  # a render-demo-hoz
+#from .charts.bar import save_simple_bar  # a render-demo-hoz
 from .brand import get_brand
 from .data.manifest import load_structure, summarize
 
+
+def resolve_brand_css_paths() -> list[str]:
+    """
+    Csak a publikus repo-beli brand.css-t keressük (src/templates/assets/css/brand.css).
+    Lokális override-ot NEM használunk, hogy ne zavarjon be.
+    """
+    repo_css = Path(__file__).resolve().parent.parent / "templates" / "assets" / "css" / "brand.css"
+    return [str(repo_css.resolve())] if repo_css.exists() else []
 
 app = typer.Typer(help="msr-report – riport generátor")
 
@@ -71,12 +82,11 @@ def doctor() -> None:
 def render_demo() -> None:
     """
     minimál demo HTML-riport a local/output/html alá (base.html.j2 sablonból).
-    brandelt CSS: local/assets/css/brand.css
+    Brandelt CSS: a repo-beli src/templates/assets/css/brand.css kerül betöltésre (nincs local override).
     """
-    brand_css_path = local_path("assets", "css", "brand.css")
-    if not brand_css_path.exists():
-        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
-        console.print("Hozd létre: local/assets/css/brand.css (brand színek, tipó stb.)")
+    css_paths = resolve_brand_css_paths()
+    if not css_paths:
+        console.print("[red]Hiányzik brand.css:[/red] repo-beli 'src/templates/assets/css/brand.css' nem található.")
         raise typer.Exit(code=1)
 
     # demo adatok + grafikon
@@ -96,7 +106,8 @@ def render_demo() -> None:
         "report_title": "Piaci felmérés – Demo",
         "report_subtitle": "HTML → PDF cső próba",
         "prepared_for": "Belső használatra",
-        "brand_css_path": str(brand_css_path.resolve()),
+        "brand_css_paths": css_paths,
+        "brand_css_path": css_paths[0],
         "sections": [
             {
                 "title": "Bevezetés",
@@ -146,14 +157,18 @@ def pdf_from_html(file: str = typer.Argument(..., help="HTML fájl neve a local/
 def render_cover_demo() -> None:
     """
     CÍMLAP DEMÓ: háttér + logó + címblokk.
-    szükséges fájlok (local/assets alatt):
-      - CSS:   local/assets/css/brand.css
+    Szükséges fájlok (local/assets alatt):
       - LOGÓ:  local/assets/logos/logo.png
       - BG:    local/assets/backgrounds/cover_bg.png
       - BG2:   local/assets/backgrounds/cover_bg_bottom.png (opcionális)
+    A brandelt CSS automatikusan a repo-ból jön: src/templates/assets/css/brand.css
     """
     brand = get_brand()                # központi brand beállítások
-    brand.assets.ensure_css()          # a CSS-nek léteznie kell
+    css_paths = resolve_brand_css_paths()
+    if not css_paths:
+        console.print("[red]Hiányzik brand.css:[/red] repo-beli 'src/templates/assets/css/brand.css' nem található.")
+        raise typer.Exit(code=1)
+    primary_css = css_paths[0]
 
     missing = brand.assets.missing_assets()
     if missing:
@@ -168,7 +183,8 @@ def render_cover_demo() -> None:
 
     context = {
         "title": "Riport (demo cover)",
-        "brand_css_path": str(brand.assets.css_path.resolve()),
+        "brand_css_paths": css_paths,
+        "brand_css_path": primary_css,
         "cover": {
             "logo_path": str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None,
             "background_path": str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None,
@@ -202,10 +218,11 @@ def render_content_demo() -> None:
     Itt a page_config.pre_content_pages = 0, mert nincs cover az elején.
     """
     # 1) CSS ellenőrzés
-    brand_css_path = local_path("assets", "css", "brand.css")
-    if not brand_css_path.exists():
-        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+    css_paths = resolve_brand_css_paths()
+    if not css_paths:
+        console.print("[red]Hiányzik brand.css:[/red] repo-beli 'src/templates/assets/css/brand.css' nem található.")
         raise typer.Exit(code=1)
+    primary_css = css_paths[0]
 
     # 2) BRAND + alapértelmezett content-logó
     brand = get_brand()
@@ -235,7 +252,8 @@ def render_content_demo() -> None:
     # 5) Render
     context = {
         "title": "Riport (content demo – váz)",
-        "brand_css_path": str(brand_css_path.resolve()),
+        "brand_css_paths": css_paths,
+        "brand_css_path": primary_css,
         "content_logo_path": content_logo_path,
         "sections": sections,
         "page_config": page_config,
@@ -261,10 +279,11 @@ def render_cover_and_content_demo() -> None:
     A cover NEM jelenít meg oldalszámot, de beleszámít (cover = 1, utána első content = 2).
     """
     # 1) CSS ellenőrzés
-    brand_css_path = local_path("assets", "css", "brand.css")
-    if not brand_css_path.exists():
-        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+    css_paths = resolve_brand_css_paths()
+    if not css_paths:
+        console.print("[red]Hiányzik brand.css:[/red] repo-beli 'src/templates/assets/css/brand.css' nem található.")
         raise typer.Exit(code=1)
+    primary_css = css_paths[0]
 
     brand = get_brand()
     content_logo_path = str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None
@@ -310,7 +329,8 @@ def render_cover_and_content_demo() -> None:
     # 5) Render
     context = {
         "title": "Riport (cover + content demo)",
-        "brand_css_path": str(brand_css_path.resolve()),
+        "brand_css_paths": css_paths,
+        "brand_css_path": primary_css,
         "cover": cover,
         "content_logo_path": content_logo_path,
         "sections": sections,
@@ -326,6 +346,81 @@ def render_cover_and_content_demo() -> None:
     console.print("→ PDF:  msr pdf-from-html demo_cover_content.html")
 
 
+
+@app.command("charts-demo")
+def charts_demo(
+    xlsx: str = typer.Option(
+        "data/input/MCC demo eredmények.xlsx",
+        help="Excel helye (relatív a local/ gyökeréhez)",
+    ),
+    partner_id: str | None = typer.Option(
+        None,
+        help="Kiemelendő PartnerId (STRING). Ha nincs megadva vagy nem található, az első sort használjuk.",
+    ),
+) -> None:
+    """
+    Példa: csoportátlag (column) + kiválasztott partner vs. csoport (radar).
+    Kimenet: local/output/assets/charts/*.png
+    """
+    # 1) adat betöltése
+    xls_path = local_path(*xlsx.split("/"))
+    if not xls_path.exists():
+        console.print(f"[red]Nem találom az Excelt:[/red] {xls_path}")
+        raise typer.Exit(code=1)
+
+    df = pd.read_excel(xls_path, sheet_name=0)
+    # várjuk: PartnerId + Kérdés1..KérdésN (számok)
+    metric_cols = [c for c in df.columns if c.lower().startswith("kérdés")]
+    if not metric_cols:
+        console.print("[red]Nem találtam 'Kérdés*' oszlopokat az Excelben.[/red]")
+        raise typer.Exit(code=1)
+
+    # 2) csoportátlag (column)
+    means = df[metric_cols].mean().values.tolist()
+    labels = metric_cols
+    col_path = save_column(
+        values=means, labels=labels,
+        title="Csoportátlag kérdésenként",
+        y_range=(1, 5),  # tipikus 1–5 Likert
+        annotate=True,
+        size_cm=(30.0, 10.0),
+        filename="group_means.png",
+    )
+    console.print(f"[green]OK[/green] column: {col_path}")
+
+    # 3) kiválasztott partner vs. csoport (radar)
+    pid_col = "PartnerId"
+    # PartnerId-k tipikusan alfanumerikusak (pl. "P01203012"). Kezeljük STRING-ként.
+    if partner_id:
+        row = df.loc[df[pid_col].astype(str) == str(partner_id)]
+    else:
+        row = pd.DataFrame()  # üres, hogy a fallback ágat aktiváljuk
+
+    if row.empty:
+        console.print(
+            f"[yellow]Figyelem:[/yellow] nincs ilyen PartnerId: {partner_id!r}, az első sort használom."
+        )
+        row = df.iloc[[0]]
+
+    pid_for_title = str(row[pid_col].iloc[0])
+
+    series_main = row[metric_cols].iloc[0].tolist()
+    series_comp = df[metric_cols].mean().tolist()
+    rad_path = save_radar(
+        labels=labels,
+        series_main=series_main,
+        series_comp=series_comp,
+        title=f"Partner {pid_for_title} vs. csoport",
+        r_range=(1, 5),
+        size_cm=(18.0, 18.0),
+        filename="partner_vs_group_radar.png",
+    )
+    console.print(f"[green]OK[/green] radar: {rad_path}")
+
+    console.print("[bold green]Kész![/bold green] A képek a local/output/assets/charts alatt vannak.")
+    console.print("Használd a YAML-ben: output/assets/charts/group_means.png  (röviden: írhatsz assets/charts/…-t is; ilyenkor automatikusan az output/ alá mutat).")
+
+
 # ──────────────────────────────────────────────────────────────
 # köszönetnyilvánítás demo (alapesetben 2. oldal)
 # ──────────────────────────────────────────────────────────────
@@ -337,10 +432,11 @@ def render_thanks() -> None:
     - a törzsben 'text' layout, a szöveg a local/data/content/thanks.html-ből jön.
     """
     # 1) CSS megvan?
-    brand_css_path = local_path("assets", "css", "brand.css")
-    if not brand_css_path.exists():
-        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+    css_paths = resolve_brand_css_paths()
+    if not css_paths:
+        console.print("[red]Hiányzik brand.css:[/red] repo-beli 'src/templates/assets/css/brand.css' nem található.")
         raise typer.Exit(code=1)
+    primary_css = css_paths[0]
 
     # 2) brand + default content logó (jobb felső sarok)
     brand = get_brand()
@@ -381,11 +477,17 @@ def render_thanks() -> None:
         "enabled": True,
     }
 
+    # Egy 'content' típusú slide-ot is adunk a contexthez a modern sablonhoz
+    slide = dict(section)
+    slide["kind"] = "content"
+
     context = {
         "title": "Riport – Köszönetnyilvánítás",
-        "brand_css_path": str(brand_css_path.resolve()),
+        "brand_css_paths": css_paths,
+        "brand_css_path": primary_css,
         "content_logo_path": content_logo_path,
-        "sections": [section],
+        "slides": [slide],          # ← ÚJ: egységes slide-lista (a sablon elsődlegesen ezt használja)
+        "sections": [section],      # ← Fallback a régi sablon útvonalhoz
         "page_config": page_config,
         # NINCS 'cover' a contextben → most csak a content oldalt rendereljük külön
     }
@@ -422,10 +524,11 @@ def render_structure(
     Kimenet: local/output/html/report_structure.html
     """
     # 1) CSS ellenőrzés
-    brand_css_path = local_path("assets", "css", "brand.css")
-    if not brand_css_path.exists():
-        console.print(f"[red]Hiányzik a CSS:[/red] {brand_css_path}")
+    css_paths = resolve_brand_css_paths()
+    if not css_paths:
+        console.print("[red]Hiányzik brand.css:[/red] repo-beli 'src/templates/assets/css/brand.css' nem található.")
         raise typer.Exit(code=1)
+    primary_css = css_paths[0]
 
     # 2) Brand + logó
     brand = get_brand()
@@ -524,8 +627,17 @@ def render_structure(
 
             # SPLIT layout tartalom
             if section["layout"] == "split":
-                if c.get("image_path"):
-                    img = _lp(c["image_path"])
+                rel = c.get("image_path")
+                if rel:
+                    # default: resolve relative to local/
+                    img = _lp(rel)
+                    if not img.exists():
+                        # Fallback: if YAML uses "assets/…" assume generated charts live under "output/assets/…"
+                        parts = [p for p in rel.split("/") if p]
+                        if parts and parts[0] == "assets":
+                            img_candidate = local_path("output", *parts)
+                            if img_candidate.exists():
+                                img = img_candidate
                     section["image_path"] = str(img.resolve()) if img.exists() else str(img)
                 if c.get("explain_title"):       section["explain_title"]       = c["explain_title"]
                 if c.get("explain_paragraph"):   section["explain_paragraph"]   = c["explain_paragraph"]
@@ -551,7 +663,8 @@ def render_structure(
     # 8) Render
     context = {
         "title": "Riport (YAML-ből)",
-        "brand_css_path": str(brand_css_path.resolve()),
+        "brand_css_paths": css_paths,
+        "brand_css_path": primary_css,
         "slides": slides,                          # ← ÚJ: egységes lista
         "cover": first_cover,                      # fallback
         "sections": only_sections,                 # fallback

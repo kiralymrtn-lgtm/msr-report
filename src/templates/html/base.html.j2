@@ -4,7 +4,11 @@
   <meta charset="utf-8">
   <title>{{ title or "Riport" }}</title>
 
-  {% if brand_css_path %}
+  {% if brand_css_paths %}
+    {% for cssp in brand_css_paths %}
+      <link rel="stylesheet" href="file://{{ cssp }}">
+    {% endfor %}
+  {% elif brand_css_path %}
     <link rel="stylesheet" href="file://{{ brand_css_path }}">
   {% endif %}
 
