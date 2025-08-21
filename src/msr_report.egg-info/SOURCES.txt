@@ -8,6 +8,10 @@ src/msr/charts/bar.py
 src/msr/charts/radar.py
 src/msr/charts/theme.py
 src/msr/charts/utils.py
+src/msr/commands/__init__.py
+src/msr/commands/charts.py
+src/msr/commands/rendering.py
+src/msr/commands/utils.py
 src/msr/data/manifest.py
 src/msr/html/__init__.py
 src/msr/html/builder.py
