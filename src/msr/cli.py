@@ -642,6 +642,27 @@ def render_structure(
 
             slides.append(section)
 
+        elif kind == "closing":
+            clos = p.get("closing", {}) or {}
+
+            # általános záró logó (local/assets/logos/logo_general.png), ha nincs: esünk vissza a brand logóra
+            logo_general = local_path("assets", "logos", "logo_general.png")
+            logo_path = (
+                str(logo_general.resolve()) if logo_general.exists()
+                else (str(brand.assets.logo_path.resolve()) if brand.assets.logo_path else None)
+            )
+
+            slides.append({
+                "kind": "closing",
+                "logo_path": logo_path,
+                # a cover felső rétegét (cover_bg.png) használjuk
+                "background_path": (
+                    str(brand.assets.cover_background_path.resolve()) if brand.assets.cover_background_path else None
+                ),
+                # opcionális: YAML-ből jövő saját HTML
+                "text_html": clos.get("text_html"),
+            })
+
         else:
             console.print(f"[yellow]Ismeretlen 'kind':[/yellow] {kind!r} – oldal kihagyva.")
 
@@ -700,13 +721,25 @@ def pages_validate(struct_path: str = typer.Option(
     # 3) részletes lista
     for idx, p in enumerate(pages, start=1):
         kind = p["kind"]
-        label = "COVER " if kind == "cover" else "CONTENT"
+        if kind == "cover":
+            label = "COVER   "
+        elif kind == "content":
+            label = "CONTENT "
+        elif kind == "closing":
+            label = "CLOSING "
+        else:
+            label = f"{kind.upper():8}"
         if kind == "cover":
             t = p.get("cover", {}).get("title", {})
             title_preview = " ".join(x for x in [t.get("line1"), t.get("line2"), t.get("year")] if x)
-        else:
+        elif kind == "content":
             c = p.get("content", {})
             title_preview = " ".join(x for x in [c.get("title_main"), c.get("title_sub")] if x)
+        elif kind == "closing":
+            # No title fields; could optionally show a fixed string or empty
+            title_preview = ""
+        else:
+            title_preview = ""
 
         console.print(f"{idx:>2}. {label:8} {title_preview}")
 

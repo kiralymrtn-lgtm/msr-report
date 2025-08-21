@@ -37,8 +37,8 @@ def load_structure(path: Optional[Path] = None) -> Dict[str, Any]:
         if not isinstance(p, dict):
             raise ValueError(f"{i}. oldal: nem dict típus.")
         kind = p.get("kind")
-        if kind not in {"cover", "content"}:
-            raise ValueError(f"{i}. oldal: 'kind' kötelező ('cover' vagy 'content').")
+        if kind not in {"cover", "content", "closing"}:
+            raise ValueError(f"{i}. oldal: 'kind' kötelező ('cover' vagy 'content' vagy 'closing').")
         # Üres részeket biztosan tegyünk be:
         if kind == "cover":
             p.setdefault("cover", {})

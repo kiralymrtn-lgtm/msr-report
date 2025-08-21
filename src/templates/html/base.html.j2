@@ -15,6 +15,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+{# ── slides → legacy adapter: map 'slides' to 'cover' + 'sections' if not already set ── #}
+{% set _slides = slides if slides is defined else [] %}
+{% if _slides %}
+  {% if (cover is not defined) or (not cover) %}
+    {% set cover = (_slides | selectattr('kind','equalto','cover') | list | first) %}
+  {% endif %}
+  {% if (sections is not defined) or (not sections) %}
+    {% set sections = (_slides | selectattr('kind','equalto','content') | list) %}
+  {% endif %}
+{% endif %}
 
 {% if slides %}
   {% for slide in slides %}
@@ -46,6 +56,30 @@
               <div class="cover-title-year">{{ slide.title.year }}</div>
             </div>
           {% endif %}
+        </div>
+      </div>
+
+    {% elif slide.kind == "closing" %}
+      <div
+        class="page closing-page"
+        style="
+          {% if slide.background_path %}
+            --closing-bg: url('file://{{ slide.background_path }}');
+          {% endif %}
+        "
+      >
+        <div class="closing-block">
+          {% if slide.logo_path %}
+            <img class="closing-logo" src="file://{{ slide.logo_path }}" alt="Logo">
+          {% endif %}
+          <div class="closing-text">
+            {% if slide.text_html %}
+              {{ slide.text_html | safe }}
+            {% else %}
+              <p>Köszönjük figyelmét és segítségét! Keressen minket bizalommal:</p>
+              <p>xy – <a href="mailto:xy@xy.hu">xy@xy.hu</a><br>
+            {% endif %}
+          </div>
         </div>
       </div>
 
@@ -255,6 +289,28 @@
       </div>
     </div>
   {% endfor %}
+
+  {# ── render closing pages (if slides provided) ── #}
+  {% if _slides %}
+    {% for cl in (_slides | selectattr('kind','equalto','closing') | list) %}
+      <div class="page closing-page"
+          style="{% if cl.background_path %}--closing-bg: url('file://{{ cl.background_path }}');{% endif %}">
+        <div class="closing-block">
+          {% if cl.logo_path %}
+            <img class="closing-logo" src="file://{{ cl.logo_path }}" alt="">
+          {% endif %}
+          <div class="closing-text">
+            {% if cl.text_html %}
+              {{ cl.text_html | safe }}
+            {% else %}
+              <p>Köszönjük figyelmét és segítségét! Keressen minket bizalommal:</p>
+              <p>xy – <a href="mailto:xy@xy.hu">xy@xy.hu</a></p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
 {% endif %}
 
 </body>

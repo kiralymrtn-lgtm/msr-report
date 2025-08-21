@@ -91,6 +91,13 @@
     --page-number-pad-y: 2mm;         /* belső függőleges padding */
 
 
+  /* ===== CLOSING PAGE ===== */
+  --closing-logo-width: 160mm;
+  --closing-text-font-size: 12pt;
+  --closing-text-color: var(--text);
+  --closing-block-maxw: 70%;
+  --closing-block-gap: 6mm;
+
   /* a sáv UTÁN mennyi hely legyen, mielőtt kezdődik a tartalom */
   --content-body-gap: 8mm;
 }
@@ -310,6 +317,43 @@ h1, h2, h3 {
   display: none;
 }
 
+/* =======================================================================
+   CLOSING PAGE – cover-szerű záró dia (nincs felső fehér sáv)
+   - a COVER felső (cover_bg.png) hátterét használjuk (egyrétegű)
+   - középre igazított „általános” logó és alatta szöveg
+   ======================================================================= */
+.closing-page {
+  height: var(--content-height);
+  background-image: var(--closing-bg, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.closing-page .closing-block {
+  text-align: center;
+  max-width: var(--closing-block-maxw);
+  padding: 0 10mm;
+}
+.closing-page .closing-logo {
+  width: var(--closing-logo-width);
+  height: auto;
+  display: block;
+  margin: 0 auto var(--closing-block-gap) auto;
+}
+.closing-page .closing-text {
+  font-size: var(--closing-text-font-size);
+  line-height: 1.5;
+  color: var(--closing-text-color);
+}
+.closing-page .closing-text a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
 /* a tényleges tartalom a sáv alatt */
 .content-page .content-body {
   position: relative;
@@ -332,8 +376,8 @@ h1, h2, h3 {
   /* TEXT-ONLY alap: max szélesség és sorhossz ergonomikus olvasáshoz */
   --text-only-max-width: 90%;      /* lehet % vagy mm (pl. 220mm) */
   --text-only-align: center;       /* left | center */
-  --text-only-font-size: 8pt;     /* felülírható oldalanként is */
-  --text-only-line-height: 1.6;
+  --text-only-font-size: 12pt;     /* felülírható oldalanként is */
+  --text-only-line-height: 1.2;
   --text-only-color: var(--text);
 
   /* SPLIT alap paraméterek */
@@ -368,7 +412,6 @@ h1, h2, h3 {
   margin: 0 auto;                                /* center alignment */
   max-width: var(--text-only-max-width);
   text-align: justify;                               /* a törzsszöveg balra zárt */
-  hyphens: auto;
   font-size: var(--text-only-font-size, 8pt);
   line-height: var(--text-only-line-height, 1.6);
   color: var(--text-only-color, var(--text));
