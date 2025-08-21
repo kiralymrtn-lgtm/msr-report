@@ -381,7 +381,7 @@ h1, h2, h3 {
   --text-only-color: var(--text);
 
   /* SPLIT alap paraméterek */
-  --split-left-width: 55%;         /* bal hasáb szélessége (%, mm, px) */
+  --split-left-width: 50%;         /* bal hasáb szélessége (%, mm, px) */
   --split-gap: 10mm;               /* hasábok közti tér */
   --split-right-pad: 0mm;          /* jobb hasáb belső jobb padding (ha kell) */
 
@@ -497,9 +497,11 @@ h1, h2, h3 {
   /* ha képet raksz ide, figyelj a max szélességre, hogy ne lógjon ki */
 }
 .content-page .split-left img {
-  max-width: 100%;
+  max-width: var(--split-left-img-max-width, 100%);
+  max-height: var(--split-left-img-max-height, 100%);
   height: auto;
   display: block;
+  object-fit: contain;
 }
 
 /* táblázat minimal styling – már van fent egy egyszerű, itt csak finomhangolás, ha kell */

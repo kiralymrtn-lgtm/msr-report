@@ -37,13 +37,14 @@ def charts_demo(
     # 2) csoportátlag (column)
     means = df[metric_cols].mean().values.tolist()
     labels = metric_cols
-    col_path = save_column(
-        values=means, labels=labels,
-        title="Csoportátlag kérdésenként",
-        y_range=(1, 5),  # tipikus 1–5 Likert
-        annotate=True,
-        size_cm=(30.0, 10.0),
-        filename="group_means.png",
+    col_path = (
+        save_column(
+            values=means, labels=labels,
+            title="Csoportátlag kérdésenként",
+            y_range=(1, 5),  # tipikus 1–5 Likert
+            annotate = True,
+            filename = "group_means.png",
+        )
     )
     console.print(f"[green]OK[/green] column: {col_path}")
 
@@ -65,14 +66,15 @@ def charts_demo(
 
     series_main = row[metric_cols].iloc[0].tolist()
     series_comp = df[metric_cols].mean().tolist()
-    rad_path = save_radar(
-        labels=labels,
-        series_main=series_main,
-        series_comp=series_comp,
-        title=f"Partner {pid_for_title} vs. csoport",
-        r_range=(1, 5),
-        size_cm=(10.0, 10.0),
-        filename="partner_vs_group_radar.png",
+    rad_path = (
+        save_radar(
+            labels=labels,
+            series_main=series_main,
+            series_comp=series_comp,
+            title=f"Partner {pid_for_title} vs. csoport",
+            r_range=(1, 5),
+            filename="partner_vs_group_radar.png",
+        )
     )
     console.print(f"[green]OK[/green] radar: {rad_path}")
 

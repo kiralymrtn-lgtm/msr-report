@@ -5,8 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..utils.paths import local_path, ensure_dir
+from .theme import DEFAULT_PALETTE, ensure_rubik_font
 
 CM_TO_IN = 0.3937007874
+
+# Legyen Rubik a default a bar/column chartoknál is
+ensure_rubik_font()
 
 # Brand-aligned default palette (tükör a brand.css-hez)
 DEFAULT_PALETTE = {
@@ -14,6 +18,16 @@ DEFAULT_PALETTE = {
     "muted":     "#f0aa00",  # --muted
     "text":      "#243746",  # --text
 }
+
+# ─────────────────────────────────────────────────────────
+# Global default size (cm) for bar/column charts
+# ─────────────────────────────────────────────────────────
+DEFAULT_BAR_SIZE_CM: tuple[float, float] = (8.0, 8.0)
+
+def set_default_bar_size(size_cm: tuple[float, float]) -> None:
+    """Override the default size used by bar/column charts when size_cm is not provided."""
+    global DEFAULT_BAR_SIZE_CM
+    DEFAULT_BAR_SIZE_CM = size_cm
 
 def _fig(size_cm: tuple[float, float]):
     w_in, h_in = size_cm[0] * CM_TO_IN, size_cm[1] * CM_TO_IN
@@ -39,7 +53,7 @@ def save_column(
     title: str | None = None,
     y_range: tuple[float, float] | None = None,
     annotate: bool = False,
-    size_cm: tuple[float, float] = (30.0, 10.0),
+    size_cm: tuple[float, float] | None = None,
     filename: str = "column.png",
     palette: dict[str, str] | None = None,
     compare_values: Sequence[float] | None = None,
@@ -57,7 +71,8 @@ def save_column(
     sec = pal["secondary"]
     mut = pal["muted"]
     txt = pal["text"]
-
+    if size_cm is None:
+        size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
     x = np.arange(len(labels))
 
@@ -132,7 +147,7 @@ def save_bar(
     title: str | None = None,
     x_range: tuple[float, float] | None = None,
     annotate: bool = False,
-    size_cm: tuple[float, float] = (30.0, 10.0),
+    size_cm: tuple[float, float] | None = None,
     filename: str = "bar.png",
     palette: dict[str, str] | None = None,
     compare_values: Sequence[float] | None = None,
@@ -149,7 +164,8 @@ def save_bar(
     sec = pal["secondary"]
     mut = pal["muted"]
     txt = pal["text"]
-
+    if size_cm is None:
+        size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
     y = np.arange(len(labels))
 

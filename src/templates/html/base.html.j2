@@ -77,7 +77,7 @@
               {{ slide.text_html | safe }}
             {% else %}
               <p>Köszönjük figyelmét és segítségét! Keressen minket bizalommal:</p>
-              <p>xy – <a href="mailto:xy@xy.hu">xy@xy.hu</a><br>
+              <p>xy – <a href="mailto:xy@xy.hu">xy@xy.hu</a></p>
             {% endif %}
           </div>
         </div>
@@ -133,12 +133,13 @@
 
         {% elif slide.layout == "split" %}
           <div class="content-body content-layout--split"
-               style="
-                 {% if slide.split_left_width %}--split-left-width: {{ slide.split_left_width }};{% endif %}
-                 {% if slide.split_gap       %}--split-gap:        {{ slide.split_gap }};{% endif %}
-                 {% if slide.explain_title_size %}--explain-title-font-size: {{ slide.explain_title_size }};{% endif %}
-               ">
-
+             style="
+               {% if slide.split_left_width is defined %}--split-left-width: {{ slide.split_left_width }};{% endif %}
+               {% if slide.split_gap is defined %}--split-gap: {{ slide.split_gap }};{% endif %}
+               {% if slide.explain_title_size is defined %}--explain-title-font-size: {{ slide.explain_title_size }};{% endif %}
+               {% if slide.split_left_img_max_width is defined %}--split-left-img-max-width: {{ slide.split_left_img_max_width }};{% endif %}
+               {% if slide.split_left_img_max_height is defined %}--split-left-img-max-height: {{ slide.split_left_img_max_height }};{% endif %}
+             ">
             <div class="split-left">
               {% if slide.image_path %}
                 <img src="file://{{ slide.image_path }}" alt="">
