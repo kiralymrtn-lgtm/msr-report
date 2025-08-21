@@ -458,15 +458,9 @@ def render_thanks() -> None:
         "header_height": "20mm",          # sáv magassága
         "title_main": "KÖSZÖNETNYILVÁNÍTÁS",  # főcím a sávban (Rubik, CAPS)
         "title_sub":  "",                 # alcím itt most nincs (Times italic lenne)
-
         # JOBB FELSŐ LOGÓ – megjelenik (ha nem szeretnéd: "hide_logo": True)
         #"logo_height": "14mm",            # tetszőlegesen állítható (brand.css-ben a var-hoz kötve)
-
-        # TEXT LAYOUT finomhangolás (a törzsben)
-        "text_only_max_width":  "80%",
-        "text_only_font_size":  "6mm",
-        "text_only_line_height":"1.5",
-        "text_align": "left",
+        # TEXT LAYOUT finomhangolás (a törzsben) – használjuk a brand.css defaultjait, ne írjuk felül!
         "text_html": thanks_html,         # ← a beolvasott HTML
     }
 

@@ -330,9 +330,9 @@ h1, h2, h3 {
 /* ——— Globális, állítható változók a layoutokhoz ——— */
 :root {
   /* TEXT-ONLY alap: max szélesség és sorhossz ergonomikus olvasáshoz */
-  --text-only-max-width: 75%;      /* lehet % vagy mm (pl. 220mm) */
+  --text-only-max-width: 90%;      /* lehet % vagy mm (pl. 220mm) */
   --text-only-align: center;       /* left | center */
-  --text-only-font-size: 11pt;     /* felülírható oldalanként is */
+  --text-only-font-size: 8pt;     /* felülírható oldalanként is */
   --text-only-line-height: 1.6;
   --text-only-color: var(--text);
 
@@ -367,8 +367,9 @@ h1, h2, h3 {
 .content-page .text-only-block {
   margin: 0 auto;                                /* center alignment */
   max-width: var(--text-only-max-width);
-  text-align: left;                               /* a törzsszöveg balra zárt */
-  font-size: var(--text-only-font-size, 11pt);
+  text-align: justify;                               /* a törzsszöveg balra zárt */
+  hyphens: auto;
+  font-size: var(--text-only-font-size, 8pt);
   line-height: var(--text-only-line-height, 1.6);
   color: var(--text-only-color, var(--text));
 }
@@ -380,10 +381,61 @@ h1, h2, h3 {
 }
 
 /* opcionális alcímek a text-only blokkon belül */
+
 .content-page .text-only-block h3 {
   margin: 0 0 4mm 0;
   color: var(--brand-primary);
 }
+
+/* ——— THANKS slide helpers ——— */
+/* Explicit Times New Roman italic for the salutation */
+.content-page .text-only-block .tnr-italic {
+  font-family: "Times New Roman", Times, serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Intro paragraphs in Rubik bold */
+.content-page .text-only-block .thanks-intro p {
+  font-family: var(--heading-font);
+  font-weight: 700; /* bold Rubik */
+  margin: 0 0 4mm 0;
+}
+
+/* Body paragraphs in Rubik normal */
+.content-page .text-only-block .thanks-body p {
+  font-family: var(--body-font);
+  font-weight: 400;
+  margin: 0 0 4mm 0;
+}
+
+/* Link styling inside text-only content: visible + printable */
+.content-page .text-only-block a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+/* ——— Utility spacing & line-height classes ——— */
+/* Line-height helpers (apply to paragraphs, lists, etc.) */
+.lh-100 { line-height: 1.00 !important; }
+.lh-110 { line-height: 1.10 !important; }
+.lh-120 { line-height: 1.20 !important; }
+.lh-140 { line-height: 1.40 !important; }
+.lh-160 { line-height: 1.60 !important; }
+.lh-180 { line-height: 1.80 !important; }
+
+/* Margin helpers (millimeter-based; useful before/after specific paragraphs) */
+.mt-0   { margin-top: 0 !important; }
+.mb-0   { margin-bottom: 0 !important; }
+.mt-2mm { margin-top: 2mm !important; }
+.mb-2mm { margin-bottom: 2mm !important; }
+.mt-4mm { margin-top: 4mm !important; }
+.mb-4mm { margin-bottom: 4mm !important; }
+.mt-6mm { margin-top: 6mm !important; }
+.mb-6mm { margin-bottom: 6mm !important; }
+.mt-8mm { margin-top: 8mm !important; }
+.mb-8mm { margin-bottom: 8mm !important; }
 
 
 /* =========================
