@@ -34,20 +34,6 @@ def charts_demo(
         console.print("[red]Nem találtam 'Kérdés*' oszlopokat az Excelben.[/red]")
         raise typer.Exit(code=1)
 
-    # 2) csoportátlag (column)
-    means = df[metric_cols].mean().values.tolist()
-    labels = metric_cols
-    col_path = (
-        save_column(
-            values=means, labels=labels,
-            title="Csoportátlag kérdésenként",
-            y_range=(1, 5),  # tipikus 1–5 Likert
-            annotate = True,
-            filename = "group_means.png",
-        )
-    )
-    console.print(f"[green]OK[/green] column: {col_path}")
-
     # 3) kiválasztott partner vs. csoport (radar)
     pid_col = "PartnerId"
     # PartnerId-k tipikusan alfanumerikusak (pl. "P01203012"). Kezeljük STRING-ként.
@@ -64,11 +50,29 @@ def charts_demo(
 
     pid_for_title = str(row[pid_col].iloc[0])
 
-    series_main = row[metric_cols].iloc[0].tolist()
-    series_comp = df[metric_cols].mean().tolist()
+    series_main = row[metric_cols].iloc[0].tolist() # PARTNER
+    series_comp = df[metric_cols].mean().tolist()   # CSOPORT
+
+    # 1) Column: csoportátlag + overlay vízszintes vonal a partner értékével
+    col_path = (
+        save_column(
+            values=df[metric_cols].mean().values.tolist(),
+            labels=metric_cols,
+            title="Csoportátlag kérdésenként",
+            y_range=(1, 5),
+            annotate=True,
+            filename="group_means.png",
+            overlay_values=series_main,  # partner-értékek
+            overlay_line_width=2.4,  # kicsit vastagabb
+            # overlay_line_color=None              # None → brand 'text' szín
+            show_x_labels=True, x_label_rotation=0, x_label_fontsize=8.5,
+        )
+    )
+    console.print(f"[green]OK[/green] column: {col_path}")
+
     rad_path = (
         save_radar(
-            labels=labels,
+            labels=metric_cols,
             series_main=series_main,
             series_comp=series_comp,
             title=f"Partner {pid_for_title} vs. csoport",

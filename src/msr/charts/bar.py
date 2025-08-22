@@ -5,24 +5,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..utils.paths import local_path, ensure_dir
-from .theme import DEFAULT_PALETTE, ensure_rubik_font
+from .theme import DEFAULT_PALETTE, ensure_rubik_font, cm_to_in, DEFAULT_DPI
 
-CM_TO_IN = 0.3937007874
 
 # Legyen Rubik a default a bar/column chartoknál is
 ensure_rubik_font()
 
-# Brand-aligned default palette (tükör a brand.css-hez)
-DEFAULT_PALETTE = {
-    "secondary": "#ffd500",  # --brand-secondary (matches brand.css)
-    "muted":     "#f0aa00",  # --muted
-    "text":      "#243746",  # --text
-}
-
 # ─────────────────────────────────────────────────────────
 # Global default size (cm) for bar/column charts
 # ─────────────────────────────────────────────────────────
-DEFAULT_BAR_SIZE_CM: tuple[float, float] = (8.0, 8.0)
+DEFAULT_BAR_SIZE_CM: tuple[float, float] = (10.0, 10.0)
 
 def set_default_bar_size(size_cm: tuple[float, float]) -> None:
     """Override the default size used by bar/column charts when size_cm is not provided."""
@@ -30,17 +22,17 @@ def set_default_bar_size(size_cm: tuple[float, float]) -> None:
     DEFAULT_BAR_SIZE_CM = size_cm
 
 def _fig(size_cm: tuple[float, float]):
-    w_in, h_in = size_cm[0] * CM_TO_IN, size_cm[1] * CM_TO_IN
-    fig, ax = plt.subplots(figsize=(w_in, h_in), dpi=300)
+    fig, ax = plt.subplots(
+        figsize=(cm_to_in(size_cm[0]), cm_to_in(size_cm[1])),
+        dpi=DEFAULT_DPI,
+    )
     return fig, ax
 
 def _hide_all_axes(ax: plt.Axes) -> None:
     """No grid, no spines, no ticks, no tick-labels – completely frameless."""
     ax.grid(False)
-    # Hide every spine
     for spine in ax.spines.values():
         spine.set_visible(False)
-    # Remove all ticks and tick labels on both axes
     ax.tick_params(axis="both", which="both",
                    bottom=False, top=False, left=False, right=False,
                    labelbottom=False, labelleft=False)
@@ -58,26 +50,31 @@ def save_column(
     palette: dict[str, str] | None = None,
     compare_values: Sequence[float] | None = None,
     highlight_index: int | None = None,
+    show_x_labels: bool = False,
+    x_label_rotation: float = 0.0,
+    x_label_fontsize: float = 9.0,
+    # Overlay horizontal lines (e.g., partner values)
+    overlay_values: Sequence[float] | None = None,
+    overlay_line_color: str | None = None,
+    overlay_line_width: float = 2.0,
+    overlay_line_pad_frac: float = 0.15,
 ) -> Path:
     """
-    Függőleges oszlopdiagram (bar/column).
-
-    - Alapszín: secondary
-    - Összehasonlító sorozat (ha van): muted (side-by-side elrendezés)
-    - Kiemelés: highlight_index → text szín
-    - Nincs grid; csak Y spine látszik
+    Függőleges oszlopdiagram (column).
+      - Alapszín: secondary
+      - Összehasonlító sorozat: muted (side-by-side)
+      - Kiemelés: highlight_index → text szín
+      - Nincs grid; tengelyek és tickek rejtve
     """
     pal = {**DEFAULT_PALETTE, **(palette or {})}
-    sec = pal["secondary"]
-    mut = pal["muted"]
-    txt = pal["text"]
+    sec = pal["secondary"]; mut = pal["muted"]; txt = pal["text"]
+
     if size_cm is None:
         size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
     x = np.arange(len(labels))
 
     if compare_values is None:
-        # Egy sorozat
         width = 0.7
         colors = [sec] * len(values)
         if highlight_index is not None and 0 <= highlight_index < len(colors):
@@ -92,7 +89,6 @@ def save_column(
                         f"{val:.1f}",
                         ha="center", va="bottom", fontsize=8)
     else:
-        # Két sorozat (összehasonlítás): side-by-side
         width = 0.36
         vals = np.array(values, dtype=float)
         comp = np.array(compare_values, dtype=float)
@@ -117,17 +113,43 @@ def save_column(
 
         ax.legend(frameon=False, loc="upper right")
 
-    # No axes/ticks for column charts (frameless look)
-    ax.set_xticks([])
+    # Optional overlay horizontal lines (e.g., partner values)
+    if overlay_values is not None:
+        line_color = overlay_line_color or txt
+        # pick the bar collection to overlay: main bars for compare, otherwise the only bars
+        target_bars = (bars_main if compare_values is not None else bars)
+        for rect, y in zip(target_bars, overlay_values):
+            bw = rect.get_width()
+            # extend slightly beyond the bar width on both sides
+            x0 = rect.get_x() - bw * overlay_line_pad_frac
+            x1 = rect.get_x() + bw * (1.0 + overlay_line_pad_frac)
+            ax.hlines(y, x0, x1, color=line_color, linewidth=overlay_line_width, zorder=5)
+
+
+    # Frames
+
+    # X-labels kapcsolhatóan
+    if show_x_labels:
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, rotation=x_label_rotation, fontsize=x_label_fontsize)
+    else:
+        ax.set_xticks([])
+
     ax.set_yticks([])
 
     if y_range:
         ax.set_ylim(y_range)
-
     if title:
         ax.set_title(title, pad=6)
 
-    _hide_all_axes(ax)
+    if show_x_labels:
+        # spinek off, X-felirat marad
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=False)
+        ax.tick_params(axis="x", which="both", bottom=False, top=False, labelbottom=True)
+    else:
+        _hide_all_axes(ax)
 
     out_dir = local_path("output", "assets", "charts")
     ensure_dir(out_dir)
@@ -138,8 +160,6 @@ def save_column(
     plt.close(fig)
     return out_path
 
-
-# Horizontal bar chart helper (frameless, brand-aligned)
 def save_bar(
     values: Sequence[float],
     labels: Sequence[str],
@@ -154,16 +174,15 @@ def save_bar(
     highlight_index: int | None = None,
 ) -> Path:
     """
-    Vízszintes 'bar' diagram (barh):
+    Vízszintes 'bar' diagram (barh).
       - Alapszín: secondary
-      - Összehasonlítás (ha van): muted (side-by-side elrendezés y-eltolással)
+      - Összehasonlítás: muted
       - Kiemelés: highlight_index → text szín
-      - Tengelyek/tickek/spine-ok NINCSENEK
+      - Tengelyek/tickek/spine-ok: nincsenek
     """
     pal = {**DEFAULT_PALETTE, **(palette or {})}
-    sec = pal["secondary"]
-    mut = pal["muted"]
-    txt = pal["text"]
+    sec = pal["secondary"]; mut = pal["muted"]; txt = pal["text"]
+
     if size_cm is None:
         size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
@@ -205,7 +224,6 @@ def save_bar(
     if x_range:
         ax.set_xlim(x_range)
 
-    # Teljesen frameless
     _hide_all_axes(ax)
 
     out_dir = local_path("output", "assets", "charts")
@@ -216,6 +234,7 @@ def save_bar(
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
     return out_path
+
 
 # Visszafelé kompatibilitás (régi demókhoz)
 def save_simple_bar(

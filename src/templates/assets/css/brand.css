@@ -498,7 +498,7 @@ h1, h2, h3 {
 }
 .content-page .split-left img {
   max-width: var(--split-left-img-max-width, 100%);
-  max-height: var(--split-left-img-max-height, 100%);
+  max-height: var(--split-left-img-max-height, 100mm);
   height: auto;
   display: block;
   object-fit: contain;
