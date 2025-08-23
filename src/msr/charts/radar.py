@@ -1,3 +1,4 @@
+from logging import fatal
 from typing import Sequence, Optional, Tuple
 import math
 import numpy as np
@@ -25,10 +26,17 @@ def save_radar(
     size_cm: Optional[Tuple[float, float]] = None,
     filename: Optional[str] = None,
     palette: Optional[dict[str, str]] = None,
+    main_label: str = "Saját",
+    comp_label: Optional[str] = "Csoport",
+    legend_loc: str = "lower center",
+    legend_frame: bool = False,
+    legend_below: bool = False,
+    legend_pad: float = 0.12,
+    legend_ncol: int = 2,
 ):
     """
     Radar chart egy (vagy két) sorozattal, brand-palettával (secondary / muted).
-    Frameless: nincsenek rácsvonalak és radiális tickek.
+    Diszkrét háttérráccsal, címkékkel és kapcsolható legenddel.
     """
     apply_minimal_theme()
 
@@ -57,16 +65,17 @@ def save_radar(
     )
 
     # Fő sorozat
-    ax.plot(angles, s1, linewidth=2.0, color=color_main)
+    ax.plot(angles, s1, linewidth=2.0, color=color_main, label=main_label)
     ax.fill(angles, s1, alpha=0.10, color=color_main)
 
     # Összehasonlító sorozat (opcionális)
     if s2 is not None:
-        ax.plot(angles, s2, linewidth=1.6, linestyle="--", color=color_comp)
+        ax.plot(angles, s2, linewidth=1.6, linestyle="--", color=color_comp, label=(comp_label or ""))
         ax.fill(angles, s2, alpha=0.08, color=color_comp)
 
     # Címkék / tengelyek
-    ax.set_xticks(angles[:-1], labels)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels)
     ax.grid(True)            # háttérrács
     grid_color = pal["text"]  # visszafogott rácsszín a brand alapján
     for gl in ax.yaxis.get_gridlines():
@@ -89,12 +98,26 @@ def save_radar(
     if title:
         ax.set_title(title, pad=16)
 
+    if legend_below:
+        leg = ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, -legend_pad),
+            frameon=legend_frame,
+            ncol=legend_ncol,
+            fontsize=8.5,
+        )
+        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+    else:
+        leg = ax.legend(loc=legend_loc, frameon=legend_frame, fontsize=8.5)
+
+    leg.set_zorder(10)
+
     # Mentés (közös kimeneti mappa)
     out_dir = local_path("output", "assets", "charts")
     ensure_dir(out_dir)
     out_path = out_dir / (filename or "radar.png")
 
     fig.tight_layout()
-    fig.savefig(out_path, bbox_inches="tight")
+    fig.savefig(out_path, bbox_inches="tight", bbox_extra_artists=[leg])
     plt.close(fig)
     return out_path

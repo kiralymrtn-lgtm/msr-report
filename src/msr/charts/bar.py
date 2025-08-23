@@ -58,6 +58,18 @@ def save_column(
     overlay_line_color: str | None = None,
     overlay_line_width: float = 2.0,
     overlay_line_pad_frac: float = 0.15,
+    # Overlay labels
+    overlay_show_labels: bool = True,
+    overlay_label_fmt: str = "{y:.1f}",
+    overlay_label_offset_pt: float = 3.0,
+    main_label: str = "Értékek",
+    comp_label: str = "Csoport",
+    overlay_label: str = "Partner",
+    legend_loc: str = "lower center",
+    legend_frame: bool = False,
+    legend_below: bool = False,
+    legend_pad: float = 0.12,
+    legend_ncol: int = 2,
 ) -> Path:
     """
     Függőleges oszlopdiagram (column).
@@ -80,7 +92,7 @@ def save_column(
         if highlight_index is not None and 0 <= highlight_index < len(colors):
             colors[highlight_index] = txt
 
-        bars = ax.bar(x, values, width=width, color=colors)
+        bars = ax.bar(x, values, width=width, color=colors, label=main_label)
 
         if annotate:
             for rect, val in zip(bars, values):
@@ -93,8 +105,8 @@ def save_column(
         vals = np.array(values, dtype=float)
         comp = np.array(compare_values, dtype=float)
 
-        bars_main = ax.bar(x - width/2.0, vals, width=width, color=sec, label="Saját")
-        bars_comp = ax.bar(x + width/2.0, comp, width=width, color=mut, label="Csoport")
+        bars_main = ax.bar(x - width/2.0, vals, width=width, color=sec, label=main_label)
+        bars_comp = ax.bar(x + width/2.0, comp, width=width, color=mut, label=comp_label)
 
         if highlight_index is not None and 0 <= highlight_index < len(vals):
             bars_main[highlight_index].set_color(txt)
@@ -111,7 +123,6 @@ def save_column(
                         f"{val:.1f}",
                         ha="center", va="bottom", fontsize=8)
 
-        ax.legend(frameon=False, loc="upper right")
 
     # Optional overlay horizontal lines (e.g., partner values)
     if overlay_values is not None:
@@ -124,7 +135,35 @@ def save_column(
             x0 = rect.get_x() - bw * overlay_line_pad_frac
             x1 = rect.get_x() + bw * (1.0 + overlay_line_pad_frac)
             ax.hlines(y, x0, x1, color=line_color, linewidth=overlay_line_width, zorder=5)
+            # Label a vízszintes vonalhoz (középre, kicsi függőleges offsettel)
+            if overlay_show_labels:
+                x_mid = rect.get_x() + rect.get_width() / 2.0
+                ax.annotate(
+                    overlay_label_fmt.format(y=y),
+                    xy = (x_mid, y), xytext = (0, overlay_label_offset_pt),
+                    textcoords = "offset points",
+                    ha = "center", va = "bottom",
+                    fontsize = 8, color = line_color, zorder = 6,
+                )
 
+        # Legend proxy for overlay line
+        ax.plot([], [], color=line_color, linewidth=overlay_line_width, label=overlay_label)
+
+
+    # Always show legend for column charts
+    if legend_below:
+        # Legend az axes ALATT, középen
+        leg = ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, -legend_pad),
+            frameon=legend_frame,
+            ncol=legend_ncol,
+            fontsize=8.5,
+        )
+        # Hagyjunk helyet alul a legendnek
+        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+    else:
+        leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8.5)
 
     # Frames
 
@@ -161,17 +200,34 @@ def save_column(
     return out_path
 
 def save_bar(
-    values: Sequence[float],
-    labels: Sequence[str],
-    *,
-    title: str | None = None,
-    x_range: tuple[float, float] | None = None,
-    annotate: bool = False,
-    size_cm: tuple[float, float] | None = None,
-    filename: str = "bar.png",
-    palette: dict[str, str] | None = None,
-    compare_values: Sequence[float] | None = None,
-    highlight_index: int | None = None,
+        values: Sequence[float],
+        labels: Sequence[str],
+        *,
+        title: str | None = None,
+        x_range: tuple[float, float] | None = None,
+        annotate: bool = False,
+        size_cm: tuple[float, float] | None = None,
+        filename: str = "bar.png",
+        palette: dict[str, str] | None = None,
+        compare_values: Sequence[float] | None = None,
+        highlight_index: int | None = None,
+        # Legend / labels
+        main_label: str = "Értékek",
+        comp_label: str = "Csoport",
+        overlay_label: str = "Partner",
+        legend_loc: str = "lower right",
+        legend_frame: bool = False,
+        legend_below: bool = False,
+        legend_pad: float = 0.12,
+        legend_ncol: int = 2,
+        # Y tengely kategória feliratok
+        show_y_labels: bool = True,
+        y_label_fontsize: float = 9.0,
+        # Partner overlay: függőleges vonalak a rudakon
+        overlay_values: Sequence[float] | None = None,
+        overlay_line_color: str | None = None,
+        overlay_line_width: float = 2.0,
+        overlay_line_pad_frac: float = 0.15,
 ) -> Path:
     """
     Vízszintes 'bar' diagram (barh).
@@ -194,7 +250,7 @@ def save_bar(
         if highlight_index is not None and 0 <= highlight_index < len(colors):
             colors[highlight_index] = txt
 
-        bars = ax.barh(y, values, height=height, color=colors)
+        bars = ax.barh(y, values, height=height, color=colors, label=main_label)
 
         if annotate:
             for rect, val in zip(bars, values):
@@ -205,8 +261,8 @@ def save_bar(
         vals = np.array(values, dtype=float)
         comp = np.array(compare_values, dtype=float)
 
-        bars_main = ax.barh(y - height/2.0, vals, height=height, color=sec, label="Saját")
-        bars_comp = ax.barh(y + height/2.0, comp, height=height, color=mut, label="Csoport")
+        bars_main = ax.barh(y - height/2.0, vals, height=height, color=sec, label=main_label)
+        bars_comp = ax.barh(y + height/2.0, comp, height=height, color=mut, label=comp_label)
 
         if highlight_index is not None and 0 <= highlight_index < len(vals):
             bars_main[highlight_index].set_color(txt)
@@ -219,12 +275,53 @@ def save_bar(
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8)
 
-        ax.legend(frameon=False, loc="lower right")
+    # Partner overlay – függőleges vonalak a rudakon
+    if overlay_values is not None:
+        line_color = overlay_line_color or txt
+        target_bars = (bars_main if compare_values is not None else bars)
+        for rect, xval in zip(target_bars, overlay_values):
+            rh = rect.get_height()
+            y0 = rect.get_y() - rh * overlay_line_pad_frac
+            y1 = rect.get_y() + rh * (1.0 + overlay_line_pad_frac)
+            ax.vlines(xval, y0, y1, color=line_color, linewidth=overlay_line_width, zorder=5)
+            if annotate:
+                ymid = rect.get_y() + rh / 2.0
+                ax.annotate(f"{xval:.1f}", (xval, ymid),
+                            xytext=(3, 0), textcoords="offset points",
+                            va="center", ha="left", fontsize=8)
+
+        # Legend proxy az overlay vonalhoz
+        ax.plot([], [], color=line_color, linewidth=overlay_line_width, label=overlay_label)
+
+    # Legend
+    if legend_below:
+        leg = ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, -legend_pad),
+            frameon=legend_frame,
+            ncol=legend_ncol,
+            fontsize=8.5,
+        )
+        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+    else:
+        leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8.5)
 
     if x_range:
         ax.set_xlim(x_range)
 
-    _hide_all_axes(ax)
+    # Y tengely címkék kapcsolhatóan
+    if show_y_labels:
+        ax.set_yticks(y)
+        ax.set_yticklabels(labels, fontsize=y_label_fontsize)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(axis="x", which="both", bottom=False, top=False, labelbottom=False)
+        ax.tick_params(axis="y", which="both", left=False, right=False, labelleft=True)
+    else:
+        _hide_all_axes(ax)
+
+    if title:
+        ax.set_title(title, pad=6)
 
     out_dir = local_path("output", "assets", "charts")
     ensure_dir(out_dir)
