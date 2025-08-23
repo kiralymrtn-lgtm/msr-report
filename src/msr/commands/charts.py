@@ -7,6 +7,8 @@ from ..utils.paths import local_path
 from ..charts.bar import save_column, save_bar
 from ..charts.radar import save_radar
 
+from ..charts.table import save_partner_group_table
+
 def charts_demo(
     xlsx: str = typer.Option(
         "data/input/MCC demo eredmények.xlsx",
@@ -94,6 +96,18 @@ def charts_demo(
         legend_below=True, legend_pad=0.14, legend_ncol=2,
     )
     console.print(f"[green]OK[/green] radar: {rad_path}")
+
+    # 4) TABLE: partner vs csoport, legend alul
+    tbl_path = save_partner_group_table(
+        labels=metric_cols,
+        partner_values=series_main,
+        group_values=series_comp,
+        title=f"Partner {pid_for_title} – táblázat",
+        filename="partner_table.png",
+        # opcionális zebra:
+        zebra_colors=("#FFFFFF", "#F5F7F9"),
+    )
+    console.print(f"[green]OK[/green] table: {tbl_path}")
 
     console.print("[bold green]Kész![/bold green] A képek a local/output/assets/charts alatt vannak.")
     console.print("Használd a YAML-ben: output/assets/charts/group_means.png  …")
