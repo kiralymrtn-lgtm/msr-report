@@ -21,6 +21,7 @@ from .data.manifest import load_structure, summarize
 from .commands.utils import resolve_brand_css_paths
 from .commands import rendering as R
 from .commands import charts as C
+from .commands.charts_from_yaml import charts_from_yaml
 
 
 app = typer.Typer(help="msr-report – riport generátor")
@@ -121,6 +122,11 @@ def cmd_render_thanks():
 def cmd_render_structure(struct_path: str = typer.Option(
     None, help="Opcionális: egyedi YAML útvonal. Alapértelmezés: local/config/report_structure.yaml")):
     R.render_structure(struct_path)
+
+# ──────────────────────────────────────────────────────────────
+# chart-ok renderelése YAML-ből
+# ──────────────────────────────────────────────────────────────
+app.command("charts-from-yaml")(charts_from_yaml)
 
 
 # ──────────────────────────────────────────────────────────────

@@ -48,18 +48,18 @@ def apply_minimal_theme(*args, **kwargs) -> None:
         "axes.labelcolor": pal["text"],
         "xtick.color": pal["text"],
         "ytick.color": pal["text"],
+        # keret minimalizálása
         "axes.spines.top": False,
         "axes.spines.right": False,
+        # keret minimalizálása
         "axes.grid": False,
+        # DPI
         "xtick.bottom": False,
         "ytick.left": False,
+        # DPI
         "figure.dpi": DEFAULT_DPI,
         "savefig.dpi": DEFAULT_DPI,
-        "axes.grid": True,
-        "grid.linestyle": "-",
-        "grid.linewidth": 0.2,
-        "axes.spines.top": False,
-        "axes.spines.right": False,
+        # legenda keret nélkül
         "legend.frameon": False,
     })
 
