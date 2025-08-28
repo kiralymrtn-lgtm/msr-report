@@ -65,10 +65,11 @@ def save_column(
     overlay_values: Sequence[float] | None = None,
     overlay_line_color: str | None = None,
     overlay_line_width: float = 2.0,
-    overlay_line_pad_frac: float = 0.15,
+    overlay_line_pad_frac: float = 0.05,
     overlay_value_labels: bool = True,
     overlay_value_label_fmt: str = "{y:.1f}",
     overlay_value_label_offset_pts: float = 4.0,
+    value_label_color: str | None = None,
     main_label: str = "Értékek",
     comp_label: str = "Csoport",
     overlay_label: str = "Partner",
@@ -116,7 +117,9 @@ def save_column(
                 ax.text(rect.get_x() + rect.get_width()/2.0,
                         rect.get_height()/2.0,
                         f"{val:.1f}",
-                        ha="center", va="center", fontsize=8)
+                        ha="center", va="center", fontsize=8,
+                        color=(value_label_color or txt)
+                        )
     else:
         width = group_bar_width if group_bar_width is not None else default_group_width
         vals = np.array(values, dtype=float)
@@ -133,12 +136,16 @@ def save_column(
                 ax.text(rect.get_x() + rect.get_width()/2.0,
                         rect.get_height()/2.0,
                         f"{val:.1f}",
-                        ha="center", va="center", fontsize=8)
+                        ha="center", va="center", fontsize=8,
+                        color=(value_label_color or txt)
+                        )
             for rect, val in zip(bars_comp, comp):
                 ax.text(rect.get_x() + rect.get_width()/2.0,
                         rect.get_height()/2.0,
                         f"{val:.1f}",
-                        ha="center", va="center", fontsize=8)
+                        ha="center", va="center", fontsize=8,
+                        color=(value_label_color or txt)
+                        )
 
     # Overlay vízszintes vonalak (pl. partner érték)
     if overlay_values is not None:
@@ -158,7 +165,7 @@ def save_column(
                     xytext=(-overlay_value_label_offset_pts, 0),
                     textcoords="offset points",
                     ha="right", va="center",
-                    fontsize=8, color=line_color, zorder=6,
+                    fontsize=8, color=(value_label_color or line_color), zorder=6,
                 )
 
         # Legend proxy az overlay vonalhoz
@@ -172,11 +179,11 @@ def save_column(
             bbox_to_anchor=(0.5, -legend_pad),
             frameon=legend_frame,
             ncol=legend_ncol,
-            fontsize=8.5,
+            fontsize=8,
         )
         fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
     else:
-        ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8.5)
+        ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
 
     # X-feliratok: tördelés + ritkítás
     if show_x_labels:
@@ -252,11 +259,12 @@ def save_bar(
         overlay_values: Sequence[float] | None = None,
         overlay_line_color: str | None = None,
         overlay_line_width: float = 2.0,
-        overlay_line_pad_frac: float = 0.15,
+        overlay_line_pad_frac: float = 0.05,
         # overlay-vonal feliratozás
         overlay_value_labels: bool = True,
         overlay_value_label_fmt: str = "{x:.1f}",
         overlay_label_dy_frac: float = 0.06,
+        value_label_color: str | None = None,
 ) -> Path:
     """
     Vízszintes 'bar' diagram (barh).
@@ -285,7 +293,8 @@ def save_bar(
             for rect, val in zip(bars, values):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8.5)
+                ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8,
+                        color = (value_label_color or txt))
     else:
         height = 0.36
         vals = np.array(values, dtype=float)
@@ -301,11 +310,14 @@ def save_bar(
             for rect, val in zip(bars_main, vals):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8.5)
+                text_color = value_label_color or txt
+                ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8,
+                        color = text_color)
             for rect, val in zip(bars_comp, comp):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8.5)
+                ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8,
+                        color = (value_label_color or txt))
 
     # Optional overlay vertical lines (e.g., group averages)
     if overlay_values is not None:
@@ -327,7 +339,8 @@ def save_bar(
                     overlay_value_label_fmt.format(x=xval),
                     ha="center",
                     va="bottom",
-                    fontsize=8.5,
+                    fontsize=8,
+                    color=(value_label_color or line_color),
                     zorder=6,
                 )
 
@@ -341,11 +354,11 @@ def save_bar(
             bbox_to_anchor=(0.5, -legend_pad),
             frameon=legend_frame,
             ncol=legend_ncol,
-            fontsize=8.5,
+            fontsize=8,
         )
         fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
     else:
-        leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8.5)
+        leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
 
     if x_range:
         ax.set_xlim(x_range)
