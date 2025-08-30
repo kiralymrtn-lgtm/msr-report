@@ -61,6 +61,7 @@ def apply_minimal_theme(*args, **kwargs) -> None:
         "savefig.dpi": DEFAULT_DPI,
         # legenda keret nélkül
         "legend.frameon": False,
+        "legend.fontsize": 8,
     })
 
 def cm_to_in(cm: float) -> float:

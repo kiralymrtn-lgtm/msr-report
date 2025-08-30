@@ -28,10 +28,11 @@ def save_radar(
     palette: Optional[dict[str, str]] = None,
     main_label: str = "Az Ön értékei",
     comp_label: Optional[str] = "Hasonló árbevételű cégek átlagos értékei",
+    show_legend: bool = True,
     legend_loc: str = "lower center",
     legend_frame: bool = False,
     legend_below: bool = False,
-    legend_pad: float = 0.12,
+    legend_pad: float = 0.14,
     legend_ncol: int = 2,
     label_fontsize: float | None = None,
 ):
@@ -64,6 +65,9 @@ def save_radar(
         figsize=(cm_to_in(size_cm[0]), cm_to_in(size_cm[1])),
         dpi=300,
     )
+
+    # Surágon lévő data labelek
+    ax.tick_params(axis="y", which="both", labelsize=7)
 
     # Fő sorozat
     ax.plot(angles, s1, linewidth=2.0, color=color_main, label=main_label)
@@ -106,19 +110,20 @@ def save_radar(
     if title:
         ax.set_title(title, pad=16)
 
-    if legend_below:
-        leg = ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -legend_pad),
-            frameon=legend_frame,
-            ncol=legend_ncol,
-            fontsize=8,
-        )
-        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
-    else:
-        leg = ax.legend(loc=legend_loc, frameon=legend_frame, fontsize=8)
+    leg = None
+    if show_legend:
+        if legend_below:
+            leg = ax.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, -legend_pad),
+                frameon=legend_frame,
+                ncol=legend_ncol,
+            )
+            fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+        else:
+            leg = ax.legend(loc=legend_loc, frameon=legend_frame,)
 
-    leg.set_zorder(10)
+        leg.set_zorder(10)
 
     # Mentés (közös kimeneti mappa)
     out_dir = local_path("output", "assets", "charts")
@@ -126,6 +131,9 @@ def save_radar(
     out_path = out_dir / (filename or "radar.png")
 
     fig.tight_layout()
-    fig.savefig(out_path, bbox_inches="tight", bbox_extra_artists=[leg])
-    plt.close(fig)
+    if leg is not None:
+        fig.savefig(out_path, bbox_inches="tight", bbox_extra_artists=[leg])
+    else:
+        fig.savefig(out_path, bbox_inches="tight")
+        plt.close(fig)
     return out_path

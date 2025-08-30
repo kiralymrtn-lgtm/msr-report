@@ -53,7 +53,7 @@ def save_column(
     highlight_index: int | None = None,
     show_x_labels: bool = False,
     x_label_rotation: float = 0.0,
-    x_label_fontsize: float = 9.0,
+    x_label_fontsize: float = 8.0,
     # ÚJ: X-tick tördelés/ritkítás + hézag/szélesség
     show_every_nth_label: int = 1,        # 1 → mindet, 2 → minden másodikat stb.
     x_label_wrap: int | None = None,      # pl. 10 → max 10 karakter soronként (új sorok)
@@ -73,10 +73,11 @@ def save_column(
     main_label: str = "Értékek",
     comp_label: str = "Csoport",
     overlay_label: str = "Partner",
+    show_legend: bool = True,
     legend_loc: str = "lower center",
     legend_frame: bool = False,
     legend_below: bool = False,
-    legend_pad: float = 0.12,
+    legend_pad: float = 0.14,
     legend_ncol: int = 2,
 ) -> Path:
     """
@@ -173,17 +174,18 @@ def save_column(
 
 
     # LEGEND
-    if legend_below:
-        ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -legend_pad),
-            frameon=legend_frame,
-            ncol=legend_ncol,
-            fontsize=8,
-        )
-        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
-    else:
-        ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
+    if show_legend:
+        if legend_below:
+            ax.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, -legend_pad),
+                frameon=legend_frame,
+                ncol=legend_ncol,
+                fontsize=8,
+            )
+            fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+        else:
+            ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
 
     # X-feliratok: tördelés + ritkítás
     if show_x_labels:
@@ -247,14 +249,15 @@ def save_bar(
         main_label: str = "Értékek",
         comp_label: str = "Csoport",
         overlay_label: str = "Partner",
+        show_legend: bool = True,
         legend_loc: str = "lower right",
         legend_frame: bool = False,
         legend_below: bool = False,
-        legend_pad: float = 0.12,
+        legend_pad: float = 0.14,
         legend_ncol: int = 2,
         # Y tengely kategória feliratok
         show_y_labels: bool = True,
-        y_label_fontsize: float = 9.0,
+        y_label_fontsize: float = 8.0,
         # Partner overlay: függőleges vonalak a rudakon
         overlay_values: Sequence[float] | None = None,
         overlay_line_color: str | None = None,
@@ -293,7 +296,7 @@ def save_bar(
             for rect, val in zip(bars, values):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8,
+                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8,
                         color = (value_label_color or txt))
     else:
         height = 0.36
@@ -311,12 +314,12 @@ def save_bar(
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
                 text_color = value_label_color or txt
-                ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8,
+                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8,
                         color = text_color)
             for rect, val in zip(bars_comp, comp):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(val, ymid, f"{val:.1f}", va="center", ha="left", fontsize=8,
+                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8,
                         color = (value_label_color or txt))
 
     # Optional overlay vertical lines (e.g., group averages)
@@ -348,17 +351,18 @@ def save_bar(
         ax.plot([], [], color=line_color, linewidth=overlay_line_width, label=overlay_label)
 
     # Legend
-    if legend_below:
-        leg = ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -legend_pad),
-            frameon=legend_frame,
-            ncol=legend_ncol,
-            fontsize=8,
-        )
-        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
-    else:
-        leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
+    if show_legend:
+        if legend_below:
+            leg = ax.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, -legend_pad),
+                frameon=legend_frame,
+                ncol=legend_ncol,
+                fontsize=8,
+            )
+            fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+        else:
+            leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
 
     if x_range:
         ax.set_xlim(x_range)
