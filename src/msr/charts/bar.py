@@ -65,10 +65,11 @@ def save_column(
     overlay_values: Sequence[float] | None = None,
     overlay_line_color: str | None = None,
     overlay_line_width: float = 2.0,
-    overlay_line_pad_frac: float = 0.05,
+    overlay_line_pad_frac: float = 0.00,
     overlay_value_labels: bool = True,
     overlay_value_label_fmt: str = "{y:.1f}",
     overlay_value_label_offset_pts: float = 4.0,
+    value_label_fmt: str | None = None,
     value_label_color: str | None = None,
     main_label: str = "Értékek",
     comp_label: str = "Csoport",
@@ -91,6 +92,12 @@ def save_column(
     """
     pal = {**DEFAULT_PALETTE, **(palette or {})}
     sec = pal["secondary"]; mut = pal["muted"]; txt = pal["text"]
+
+    # Fallback formats if the caller passed None via YAML
+    if not value_label_fmt:
+        value_label_fmt = "{val:.1f}"
+    if not overlay_value_label_fmt:
+        overlay_value_label_fmt = "{y:.1f}"
 
     if size_cm is None:
         size_cm = DEFAULT_BAR_SIZE_CM
@@ -117,7 +124,7 @@ def save_column(
                 # érték az oszlop KÖZEPÉN
                 ax.text(rect.get_x() + rect.get_width()/2.0,
                         rect.get_height()/2.0,
-                        f"{val:.1f}",
+                        value_label_fmt.format(val=val),
                         ha="center", va="center", fontsize=8,
                         color=(value_label_color or txt)
                         )
@@ -136,14 +143,14 @@ def save_column(
             for rect, val in zip(bars_main, vals):
                 ax.text(rect.get_x() + rect.get_width()/2.0,
                         rect.get_height()/2.0,
-                        f"{val:.1f}",
+                        value_label_fmt.format(val=val),
                         ha="center", va="center", fontsize=8,
                         color=(value_label_color or txt)
                         )
             for rect, val in zip(bars_comp, comp):
                 ax.text(rect.get_x() + rect.get_width()/2.0,
                         rect.get_height()/2.0,
-                        f"{val:.1f}",
+                        value_label_fmt.format(val=val),
                         ha="center", va="center", fontsize=8,
                         color=(value_label_color or txt)
                         )
@@ -210,7 +217,10 @@ def save_column(
     if y_range:
         ax.set_ylim(y_range)
     if title:
-        ax.set_title(title, pad=6)
+         ax.set_title(title, pad=6)
+    #if title:
+    #    fig.suptitle(title, ha="center", y=0.99)  # a teljes képre középre
+    #    fig.tight_layout(rect=[0, 0, 1, 0.96])  # hagyjunk helyet felül
 
     if show_x_labels:
         for spine in ax.spines.values():
@@ -262,12 +272,23 @@ def save_bar(
         overlay_values: Sequence[float] | None = None,
         overlay_line_color: str | None = None,
         overlay_line_width: float = 2.0,
-        overlay_line_pad_frac: float = 0.05,
+        overlay_line_pad_frac: float = 0.00,
         # overlay-vonal feliratozás
         overlay_value_labels: bool = True,
         overlay_value_label_fmt: str = "{x:.1f}",
         overlay_label_dy_frac: float = 0.06,
+        value_label_fmt: str | None = None,
         value_label_color: str | None = None,
+        # group labels
+        group_labels: Sequence[str] | None = None,  # elemszám = len(labels); minden elemhez egy csoportnév
+        group_sep: bool = True,  # tegyünk vékony vízszintes szeparátort a csoportok közé
+        group_sep_color: str | None = None,  # ha None → pal["text"] halványítva
+        group_title_rotation: float = 90.0,  # csoportcímek forgatása (90° → függőleges)
+        group_title_offset_axes: float = -0.22,  # balra tolás (axes-frakcióban, pl. -0.10)
+        group_title_reserve_left: float = 0.22,  # bal oldali margó lefoglalása a csoportcímeknek (axes-frakció)
+        group_title_fontsize: float = 8.0,  # csoportcím betűméret
+        group_title_wrap: int | None = None,  # opcionális: csoportcím tördelése (max karakter/sor, csak szóköznél)
+        group_colors: dict[str, str] | None = None,  # opcionális: csoportonként más rúd-szín (fő sorozatra)
 ) -> Path:
     """
     Vízszintes 'bar' diagram (barh).
@@ -275,13 +296,23 @@ def save_bar(
       - Összehasonlítás: muted
       - Kiemelés: highlight_index → text szín
       - Tengelyek/tickek/spine-ok: nincsenek
+      - Kétszintű Y: csoportcímek opcionális tördelése (group_title_wrap, csak szóköznél)
     """
     pal = {**DEFAULT_PALETTE, **(palette or {})}
     sec = pal["secondary"]; mut = pal["muted"]; txt = pal["text"]
 
+    # Fallback formats if the caller passed None via YAML
+    if not value_label_fmt:
+        value_label_fmt = "{val:.1f}"
+    if not overlay_value_label_fmt:
+        overlay_value_label_fmt = "{x:.1f}"
+
     if size_cm is None:
         size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
+    extra_artists: list = []
+    sep_specs: list = []  # (title_text_artist, ysep) párok – a vonalakat később, a rendererrel rajzoljuk
+    reserved_left = None
     y = np.arange(len(labels))
 
     if compare_values is None:
@@ -296,7 +327,7 @@ def save_bar(
             for rect, val in zip(bars, values):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8,
+                ax.text(xmid, ymid, value_label_fmt.format(val=val), va="center", ha="center", fontsize=8,
                         color = (value_label_color or txt))
     else:
         height = 0.36
@@ -314,12 +345,12 @@ def save_bar(
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
                 text_color = value_label_color or txt
-                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8,
+                ax.text(xmid, ymid, value_label_fmt.format(val=val), va="center", ha="center", fontsize=8,
                         color = text_color)
             for rect, val in zip(bars_comp, comp):
                 ymid = rect.get_y() + rect.get_height() / 2.0
                 xmid = rect.get_x() + rect.get_width() / 2.0
-                ax.text(xmid, ymid, f"{val:.1f}", va="center", ha="center", fontsize=8,
+                ax.text(xmid, ymid, value_label_fmt.format(val=val), va="center", ha="center", fontsize=8,
                         color = (value_label_color or txt))
 
     # Optional overlay vertical lines (e.g., group averages)
@@ -350,6 +381,64 @@ def save_bar(
         # legend-proxy a vonalhoz
         ax.plot([], [], color=line_color, linewidth=overlay_line_width, label=overlay_label)
 
+    # --- Kétszintű Y: csoportcímek + szeparátorok ---
+    if group_labels is not None and len(group_labels) == len(labels):
+        # 1) csoport-spanek meghatározása (start..end indexek)
+        spans: list[tuple[str,int,int]] = []
+        start = 0
+        for i in range(1, len(group_labels)+1):
+            if i == len(group_labels) or group_labels[i] != group_labels[i-1]:
+                spans.append((group_labels[start], start, i-1))
+                start = i
+
+        # 2) opcionális: fő rudak színezése csoportonként
+        if group_colors:
+            if compare_values is None:
+                for rect, g in zip(bars, group_labels):
+                    rect.set_color(group_colors.get(g, sec))
+            else:
+                for rect, g in zip(bars_main, group_labels):
+                    rect.set_color(group_colors.get(g, sec))
+
+        # 3) csoportcímek és szeparátorok rajzolása
+        sep_col = group_sep_color or txt
+        for name, a, b in spans:
+            y_mid = (a + b) / 1.0 / 2.0 + 0.0  # közép
+            # cím a bal margón (x: axes-frakció, y: adatkoordináta)
+            wrapped_name = (
+                textwrap.fill(str(name),
+                              width=int(group_title_wrap),
+                              break_long_words=False,
+                              break_on_hyphens=True)
+                if group_title_wrap else str(name)
+            )
+            t = ax.text(
+                group_title_offset_axes, y_mid, wrapped_name,
+                transform=ax.get_yaxis_transform(),  # x axes-frakció, y data
+                rotation=group_title_rotation,
+                ha="center", va="center",
+                fontsize=group_title_fontsize, color=txt,
+                clip_on=False,
+            )
+            extra_artists.append(t)
+
+            # Vízszintes szeparátor: NE most rajzoljuk, hanem csak eltároljuk,
+            # hogy később a csoportcím BBOX-ának BAL széléhez tudjuk kötni.
+            if group_sep and b < len(labels) - 1:
+                ysep = b + 0.5
+                sep_specs.append((t, ysep))
+
+        # Bal oldali margó növelése, hogy a csoportcímek kényelmesen elférjenek
+        if group_title_offset_axes is not None:
+            auto_left = 0.12 + max(0.0, -float(group_title_offset_axes)) * 0.6
+        else:
+            auto_left = 0.12
+        desired_left = max(float(group_title_reserve_left), auto_left)
+        # Ésszerű tartományra szorítjuk, és csak később (tight_layout után) alkalmazzuk
+        desired_left = max(0.05, min(desired_left, 0.45))
+        reserved_left = desired_left
+
+
     # Legend
     if show_legend:
         if legend_below:
@@ -378,15 +467,69 @@ def save_bar(
     else:
         _hide_all_axes(ax)
 
-    if title:
-        ax.set_title(title, pad=6)
-
     out_dir = local_path("output", "assets", "charts")
     ensure_dir(out_dir)
     out_path = out_dir / filename
 
+    # 1) alap layout
     fig.tight_layout()
-    fig.savefig(out_path, bbox_inches="tight")
+
+    # 2) bal margó a csoportcímeknek (ha kell)
+    if reserved_left is not None:
+        try:
+            fig.subplots_adjust(left=reserved_left)
+        except Exception:
+            pass
+
+    # 3) cím: figura-szinten, a legvégén – középre igazítva a VÉGSŐ, "tight" exporthoz képest
+    extra = list(extra_artists)
+
+    # rajzoljunk egyet, hogy legyen renderer és valós artist-bounding box
+    try:
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+    except Exception:
+        renderer = None
+
+    # --- Csoport-szeparátorok kirajzolása a csoportcím BAL széléhez igazítva ---
+    if sep_specs and renderer:
+        for (title_artist, ysep) in sep_specs:
+            bbox = title_artist.get_window_extent(renderer=renderer)
+            # a bal szélt display→axes frakcióra alakítjuk (csak X kell)
+            x0_axes = ax.transAxes.inverted().transform((bbox.x0, 0))[0]
+            x1_axes = -0.02  # enyhén az y-tengely bal oldalán végződjön
+            sep_line = plt.Line2D([x0_axes, x1_axes], [ysep, ysep],
+                                  transform=ax.get_yaxis_transform(),
+                                  color=sep_col, linewidth=0.5, alpha=0.25,
+                                  zorder=1, clip_on=False)
+            ax.add_line(sep_line)
+            extra.append(sep_line)
+
+    if title:
+        # számoljuk ki, mennyivel lóg ki a tartalom a figura bal/jobb szélein (tight mentés miatt)
+        extra_left_frac = 0.0
+        extra_right_frac = 0.0
+        if renderer and extra:
+            fig_w = float(fig.bbox.width)
+            try:
+                min_x = min(a.get_window_extent(renderer=renderer).x0 for a in extra)
+                max_x = max(a.get_window_extent(renderer=renderer).x1 for a in extra)
+                # ha a bal legszélső artist a figura bal szélén túlra lóg, min_x negatív → ennyivel tágul a bal oldal
+                extra_left_frac = max(0.0, -min_x / fig_w)
+                # ha a jobb legszélső artist a figura jobb szélén túlra lóg, max_x > fig_w → ennyivel tágul a jobb oldal
+                extra_right_frac = max(0.0, (max_x - fig_w) / fig_w)
+            except Exception:
+                pass
+
+        # a végső kép közepe: (1 + jobb_tágulás - bal_tágulás) / 2
+        x_center_full = (1.0 + extra_right_frac - extra_left_frac) / 2.0
+        st = fig.text(x_center_full, 0.985, title, ha="center", va="top")
+        extra.append(st)
+        # egy kevés hely a címnek
+        fig.subplots_adjust(top=0.92)
+
+    fig.savefig(out_path, bbox_inches="tight", bbox_extra_artists=extra)
+
     plt.close(fig)
     return out_path
 

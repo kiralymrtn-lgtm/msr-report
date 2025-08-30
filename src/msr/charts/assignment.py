@@ -3,7 +3,7 @@ from typing import Sequence
 from pathlib import Path
 import pandas as pd
 
-from ..data.loaders import find_pairs, label_map_from_dict  # ezek a korábbi segédek
+from ..data.loaders import find_pairs, label_map_from_dict
 from ..utils.paths import local_path, ensure_dir
 from ..charts.theme import apply_minimal_theme, DEFAULT_PALETTE
 from ..charts.bar import save_column, save_bar
@@ -165,6 +165,8 @@ def render_assignment(
             legend_below=spec.get("legend_below", True),
             legend_pad=spec.get("legend_pad", 0.14),
             legend_ncol=spec.get("legend_ncol", 2),
+            value_label_fmt=spec.get("value_label_fmt"),
+            overlay_value_label_fmt=spec.get("overlay_value_label_fmt"),
             main_label=spec.get("main_label", "Az Ön értékei"),
             overlay_label=spec.get("overlay_label", "Hasonló árbevételű cégek átlagos értékei"),
             palette=pal,
@@ -197,16 +199,33 @@ def render_assignment(
             overlay_values=(s_comp if mode == "pair" else None),  # csoport overlay
             title=spec.get("title"),
             annotate=spec.get("annotate", True),
-            size_cm=size_cm,
             filename=_fmt_filename(spec.get("filename", "bar.png"), partner_id),
+
+            # méret és színek
+            size_cm=size_cm,
+            palette=pal,
             value_label_color=spec.get("value_label_color"),
+            value_label_fmt=spec.get("value_label_fmt"), # label formátum
+            overlay_value_label_fmt=spec.get("overlay_value_label_fmt"), # overlay label formátum
+
+            # jelmagyarázat
             show_legend=spec.get("show_legend", True),
             legend_below=spec.get("legend_below", True),
             legend_pad=spec.get("legend_pad", 0.12),
             legend_ncol=spec.get("legend_ncol", 2),
             main_label=spec.get("main_label", "Az Ön értékei"),
             overlay_label=spec.get("overlay_label", "Hasonló árbevételű cégek átlagos értékei"),
-            palette=pal,
+
+            # kétszintű Y tengely
+            group_labels=spec.get("group_labels"),
+            group_sep=spec.get("group_sep", False),
+            group_sep_color=spec.get("group_sep_color"),
+            group_title_rotation=spec.get("group_title_rotation", 90),
+            group_title_offset_axes=spec.get("group_title_offset_axes", -0.22),
+            group_title_reserve_left=spec.get("group_title_reserve_left", 0.0),
+            group_title_fontsize=spec.get("group_title_fontsize", 8.0),
+            group_title_wrap=spec.get("group_title_wrap", 14), # 1 esetén True, tehát tördel
+            group_colors=spec.get("group_colors"),
         )
         results["bar"].append(p)
 
