@@ -411,6 +411,32 @@ def render_structure(
                 if c.get("split_gap"):           section["split_gap"]           = c["split_gap"]
                 if c.get("explain_title_size"):  section["explain_title_size"]  = c["explain_title_size"]
 
+                # ÚJ: tömb-alapú több-blokkos támogatás és per-slide slot gap
+                if c.get("left_blocks"):    section["left_blocks"]  = c["left_blocks"]
+                if c.get("right_blocks"):   section["right_blocks"] = c["right_blocks"]
+                if c.get("split_slot_gap"): section["split_slot_gap"] = c["split_slot_gap"]
+
+                # Számozott fallback kulcsok másolása (1..3) – left_*/right_* tartalmak
+                for i in range(1, 4):
+                    ex_key_l = f"left_explain_title{i}"
+                    ex_key_r = f"right_explain_title{i}"
+                    if ex_key_l in c: section[ex_key_l] = c[ex_key_l]
+                    if ex_key_r in c: section[ex_key_r] = c[ex_key_r]
+
+                    for suffix in ("_html", "_paragraph", "_image_path"):
+                        ck_l = f"left_content{i}{suffix}"
+                        ck_r = f"right_content{i}{suffix}"
+                        if ck_l in c: section[ck_l] = c[ck_l]
+                        if ck_r in c: section[ck_r] = c[ck_r]
+
+                # Extra: támogatjuk a 'content{i}_*' és 'explain_title{i}' rövid kulcsokat is (jobb oldalra)
+                for i in range(1, 4):
+                    ex_key = f"explain_title{i}"
+                    if ex_key in c: section[ex_key] = c[ex_key]
+                    for suffix in ("_html", "_paragraph", "_image_path"):
+                        ck = f"content{i}{suffix}"
+                        if ck in c: section[ck] = c[ck]
+
             slides.append(section)
 
         elif kind == "closing":

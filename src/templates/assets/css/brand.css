@@ -492,6 +492,14 @@ h1, h2, h3 {
   align-items: start;
 }
 
+/* Több tartalom-blokk egymás alatt mindkét oldalon (slot-ok) */
+.content-page .split-left,
+.content-page .split-right {
+  display: grid;
+  grid-auto-rows: min-content;
+  row-gap: var(--split-slot-gap, 6mm);
+}
+
 /* bal hasáb – chart/kép/tábla */
 .content-page .split-left {
   /* ha képet raksz ide, figyelj a max szélességre, hogy ne lógjon ki */

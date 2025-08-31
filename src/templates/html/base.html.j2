@@ -15,6 +15,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+{% macro render_block(blk) -%}
+  {# opcionális címke chip #}
+  {% if blk.explain_title %}<div class="explain-title">{{ blk.explain_title }}</div>{% endif %}
+
+  {# kép #}
+  {% if blk.image_path %}
+    <img src="file://{{ blk.image_path }}" alt="">
+  {% endif %}
+
+  {# táblázat #}
+  {% if blk.table %}
+    <table class="table">
+      {% for row in blk.table %}
+        {% set is_header = loop.first %}
+        <tr>
+          {% for cell in row %}
+            {% if is_header %}
+              <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
+            {% else %}
+              <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+
+  {# HTML vagy egyszerű bekezdés #}
+  {% if blk.html %}{{ blk.html | safe }}{% endif %}
+  {% if blk.paragraph %}<p>{{ blk.paragraph }}</p>{% endif %}
+{%- endmacro %}
 {# ── slides → legacy adapter: map 'slides' to 'cover' + 'sections' if not already set ── #}
 {% set _slides = slides if slides is defined else [] %}
 {% if _slides %}
@@ -139,42 +170,89 @@
                {% if slide.explain_title_size is defined %}--explain-title-font-size: {{ slide.explain_title_size }};{% endif %}
                {% if slide.split_left_img_max_width is defined %}--split-left-img-max-width: {{ slide.split_left_img_max_width }};{% endif %}
                {% if slide.split_left_img_max_height is defined %}--split-left-img-max-height: {{ slide.split_left_img_max_height }};{% endif %}
+               {% if slide.split_slot_gap is defined %}--split-slot-gap: {{ slide.split_slot_gap }};{% endif %}
              ">
             <div class="split-left">
-              {% if slide.image_path %}
-                <img src="file://{{ slide.image_path }}" alt="">
-              {% endif %}
-              {% if slide.table %}
-                <table class="table">
-                  {% for row in slide.table %}
-                    {% set is_header = loop.first %}
-                    <tr>
-                      {% for cell in row %}
-                        {% if is_header %}
-                          <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
-                        {% else %}
-                          <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
-                        {% endif %}
+              {# 1) Elsődleges: tömb-alapú blokkok #}
+              {% if slide.left_blocks is defined and slide.left_blocks %}
+                {% for b in slide.left_blocks %}
+                  {{ render_block(b) }}
+                {% endfor %}
+              {% else %}
+                {# 2) Számozott fallback a bal oldalra: left_explain_title1/2/3 + left_content1/2/3_{html|paragraph|image_path} #}
+                {% set leftns = namespace(any=false) %}
+                {% for i in [1,2,3] %}
+                  {% set ex  = attribute(slide, 'left_explain_title' ~ i) %}
+                  {% set img = attribute(slide, 'left_content' ~ i ~ '_image_path') %}
+                  {% set html= attribute(slide, 'left_content' ~ i ~ '_html') %}
+                  {% set par = attribute(slide, 'left_content' ~ i ~ '_paragraph') %}
+                  {% if ex or img or html or par %}
+                    {% set leftns.any = true %}
+                    {{ render_block({'explain_title': ex, 'image_path': img, 'html': html, 'paragraph': par}) }}
+                  {% endif %}
+                {% endfor %}
+
+                {# 3) Teljes visszafele kompatibilitás: a régi egyszeres image_path/table #}
+                {% if not leftns.any %}
+                  {% if slide.image_path %}
+                    <img src="file://{{ slide.image_path }}" alt="">
+                  {% endif %}
+                  {% if slide.table %}
+                    <table class="table">
+                      {% for row in slide.table %}
+                        {% set is_header = loop.first %}
+                        <tr>
+                          {% for cell in row %}
+                            {% if is_header %}
+                              <th style="text-align:left; padding:4mm 6mm; border-bottom:1px solid #ddd;">{{ cell }}</th>
+                            {% else %}
+                              <td style="padding:3mm 6mm; border-top:1px solid #eee;">{{ cell }}</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
                       {% endfor %}
-                    </tr>
-                  {% endfor %}
-                </table>
+                    </table>
+                  {% endif %}
+                {% endif %}
               {% endif %}
             </div>
 
             <div class="split-right">
-              {% if slide.explain_title %}
-                <div class="explain-title">{{ slide.explain_title }}</div>
-              {% endif %}
-              <div class="explain-body">
-                {% if slide.explain_html %}
-                  {{ slide.explain_html | safe }}
-                {% elif slide.explain_paragraph %}
-                  <p>{{ slide.explain_paragraph }}</p>
-                {% else %}
-                  <p class="small">[Magyarázó szöveg helye]</p>
+              {# 1) Tömb-alapú blokkok a jobb oldalon #}
+              {% if slide.right_blocks is defined and slide.right_blocks %}
+                {% for b in slide.right_blocks %}
+                  {{ render_block(b) }}
+                {% endfor %}
+              {% else %}
+                {# 2) Számozott fallback a jobb oldalra: right_explain_title1..3 + right_content1..3_{html|paragraph|image_path} #}
+                {% set rightns = namespace(any=false) %}
+                {% for i in [1,2,3] %}
+                  {% set ex  = attribute(slide, 'right_explain_title' ~ i) or attribute(slide, 'explain_title' ~ i) %}
+                  {% set img = attribute(slide, 'right_content' ~ i ~ '_image_path') or attribute(slide, 'content' ~ i ~ '_image_path') %}
+                  {% set html= attribute(slide, 'right_content' ~ i ~ '_html')       or attribute(slide, 'content' ~ i ~ '_html') %}
+                  {% set par = attribute(slide, 'right_content' ~ i ~ '_paragraph')  or attribute(slide, 'content' ~ i ~ '_paragraph') %}
+                  {% if ex or img or html or par %}
+                    {% set rightns.any = true %}
+                    {{ render_block({'explain_title': ex, 'image_path': img, 'html': html, 'paragraph': par}) }}
+                  {% endif %}
+                {% endfor %}
+
+                {# 3) Teljes visszafele kompatibilitás: a régi egyszeres explain_title + explain_html/paragraph #}
+                {% if not rightns.any %}
+                  {% if slide.explain_title %}
+                    <div class="explain-title">{{ slide.explain_title }}</div>
+                  {% endif %}
+                  <div class="explain-body">
+                    {% if slide.explain_html %}
+                      {{ slide.explain_html | safe }}
+                    {% elif slide.explain_paragraph %}
+                      <p>{{ slide.explain_paragraph }}</p>
+                    {% else %}
+                      <p class="small">[Magyarázó szöveg helye]</p>
+                    {% endif %}
+                  </div>
                 {% endif %}
-              </div>
+              {% endif %}
             </div>
           </div>
 

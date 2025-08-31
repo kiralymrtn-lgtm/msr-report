@@ -99,6 +99,10 @@ def save_column(
     if not overlay_value_label_fmt:
         overlay_value_label_fmt = "{y:.1f}"
 
+    # Prepare explicit legend handles (to control legend order)
+    legend_handles: list = []
+    legend_labels: list[str] = []
+
     if size_cm is None:
         size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
@@ -118,6 +122,9 @@ def save_column(
             colors[highlight_index] = txt
 
         bars = ax.bar(x, values, width=width, color=colors, label=main_label)
+        # Legend proxy for main series (bar patch) – enforced order
+        main_handle = plt.Rectangle((0, 0), 1, 1, facecolor=sec, edgecolor="none")
+        legend_handles.append(main_handle); legend_labels.append(main_label)
 
         if annotate:
             for rect, val in zip(bars, values):
@@ -135,6 +142,10 @@ def save_column(
 
         bars_main = ax.bar(x - width/2.0, vals, width=width, color=sec, label=main_label)
         bars_comp = ax.bar(x + width/2.0, comp, width=width, color=mut, label=comp_label)
+        # Legend proxies for side-by-side bars — order: main then comp
+        main_handle = plt.Rectangle((0, 0), 1, 1, facecolor=sec, edgecolor="none")
+        comp_handle = plt.Rectangle((0, 0), 1, 1, facecolor=mut, edgecolor="none")
+        legend_handles.extend([main_handle, comp_handle]); legend_labels.extend([main_label, comp_label])
 
         if highlight_index is not None and 0 <= highlight_index < len(vals):
             bars_main[highlight_index].set_color(txt)
@@ -176,14 +187,16 @@ def save_column(
                     fontsize=8, color=(value_label_color or line_color), zorder=6,
                 )
 
-        # Legend proxy az overlay vonalhoz
-        ax.plot([], [], color=line_color, linewidth=overlay_line_width, label=overlay_label)
+        # Legend proxy for overlay line — appended after main, so order stays consistent
+        overlay_handle = plt.Line2D([0], [0], color=line_color, linewidth=overlay_line_width)
+        legend_handles.append(overlay_handle); legend_labels.append(overlay_label)
 
-
-    # LEGEND
-    if show_legend:
+    # LEGEND (explicit order using proxies)
+    leg = None
+    if show_legend and legend_handles:
         if legend_below:
-            ax.legend(
+            leg = ax.legend(
+                legend_handles, legend_labels,
                 loc="upper center",
                 bbox_to_anchor=(0.5, -legend_pad),
                 frameon=legend_frame,
@@ -192,7 +205,7 @@ def save_column(
             )
             fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
         else:
-            ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
+            leg = ax.legend(legend_handles, legend_labels, frameon=legend_frame, loc=legend_loc, fontsize=8)
 
     # X-feliratok: tördelés + ritkítás
     if show_x_labels:
@@ -236,10 +249,12 @@ def save_column(
 
     out_dir = local_path("output", "assets", "charts")
     ensure_dir(out_dir)
+
     out_path = out_dir / filename
 
     fig.tight_layout()
-    fig.savefig(out_path, bbox_inches="tight")
+    extra_artists = [leg] if (show_legend and leg is not None) else []
+    fig.savefig(out_path, bbox_inches="tight", bbox_extra_artists=extra_artists)
     plt.close(fig)
     return out_path
 
@@ -307,6 +322,10 @@ def save_bar(
     if not overlay_value_label_fmt:
         overlay_value_label_fmt = "{x:.1f}"
 
+    # Prepare explicit legend handles (to control legend order)
+    legend_handles: list = []
+    legend_labels: list[str] = []
+
     if size_cm is None:
         size_cm = DEFAULT_BAR_SIZE_CM
     fig, ax = _fig(size_cm)
@@ -322,6 +341,9 @@ def save_bar(
             colors[highlight_index] = txt
 
         bars = ax.barh(y, values, height=height, color=colors, label=main_label)
+        # Legend proxy for main series (bar patch)
+        main_handle = plt.Rectangle((0, 0), 1, 1, facecolor=sec, edgecolor="none")
+        legend_handles.append(main_handle); legend_labels.append(main_label)
 
         if annotate:
             for rect, val in zip(bars, values):
@@ -336,6 +358,10 @@ def save_bar(
 
         bars_main = ax.barh(y - height/2.0, vals, height=height, color=sec, label=main_label)
         bars_comp = ax.barh(y + height/2.0, comp, height=height, color=mut, label=comp_label)
+        # Legend proxies for side-by-side bars — order: main then comp
+        main_handle = plt.Rectangle((0, 0), 1, 1, facecolor=sec, edgecolor="none")
+        comp_handle = plt.Rectangle((0, 0), 1, 1, facecolor=mut, edgecolor="none")
+        legend_handles.extend([main_handle, comp_handle]); legend_labels.extend([main_label, comp_label])
 
         if highlight_index is not None and 0 <= highlight_index < len(vals):
             bars_main[highlight_index].set_color(txt)
@@ -378,8 +404,9 @@ def save_bar(
                     zorder=6,
                 )
 
-        # legend-proxy a vonalhoz
-        ax.plot([], [], color=line_color, linewidth=overlay_line_width, label=overlay_label)
+        # Legend proxy for overlay line
+        overlay_handle = plt.Line2D([0], [0], color=line_color, linewidth=overlay_line_width)
+        legend_handles.append(overlay_handle); legend_labels.append(overlay_label)
 
     # --- Kétszintű Y: csoportcímek + szeparátorok ---
     if group_labels is not None and len(group_labels) == len(labels):
@@ -438,20 +465,14 @@ def save_bar(
         desired_left = max(0.05, min(desired_left, 0.45))
         reserved_left = desired_left
 
-
-    # Legend
-    if show_legend:
+    # LEGEND: don't place yet if it goes below; we'll center to full figure later
+    leg = None
+    legend_handles_labels = None
+    if show_legend and legend_handles:
         if legend_below:
-            leg = ax.legend(
-                loc="upper center",
-                bbox_to_anchor=(0.5, -legend_pad),
-                frameon=legend_frame,
-                ncol=legend_ncol,
-                fontsize=8,
-            )
-            fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
+            legend_handles_labels = (legend_handles, legend_labels)
         else:
-            leg = ax.legend(frameon=legend_frame, loc=legend_loc, fontsize=8)
+            leg = ax.legend(legend_handles, legend_labels, frameon=legend_frame, loc=legend_loc, fontsize=8)
 
     if x_range:
         ax.set_xlim(x_range)
@@ -471,25 +492,54 @@ def save_bar(
     ensure_dir(out_dir)
     out_path = out_dir / filename
 
-    # 1) alap layout
-    fig.tight_layout()
+    # 1) renderer előállítása (bbox számításokhoz)
+    try:
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+    except Exception:
+        renderer = None
 
-    # 2) bal margó a csoportcímeknek (ha kell)
+    # 2) bal margó a csoportcímeknek (ha kell) – még a layout előtt
     if reserved_left is not None:
         try:
             fig.subplots_adjust(left=reserved_left)
         except Exception:
             pass
 
-    # 3) cím: figura-szinten, a legvégén – középre igazítva a VÉGSŐ, "tight" exporthoz képest
+    # 3) extra artistok (csoportcímek, szeparátorok, LEGEND, cím)
     extra = list(extra_artists)
+    if show_legend and leg is not None:
+        # ha a legend az axes-en kívülre lóg, vegyük be az exportba
+        extra.append(leg)
 
-    # rajzoljunk egyet, hogy legyen renderer és valós artist-bounding box
-    try:
-        fig.canvas.draw()
-        renderer = fig.canvas.get_renderer()
-    except Exception:
-        renderer = None
+    # Compute full-image horizontal center (accounts for left/right overhang from extra artists)
+    extra_left_frac = 0.0
+    extra_right_frac = 0.0
+    if renderer and extra:
+        fig_w = float(fig.bbox.width)
+        try:
+            min_x = min(a.get_window_extent(renderer=renderer).x0 for a in extra)
+            max_x = max(a.get_window_extent(renderer=renderer).x1 for a in extra)
+            extra_left_frac = max(0.0, -min_x / fig_w)
+            extra_right_frac = max(0.0, (max_x - fig_w) / fig_w)
+        except Exception:
+            pass
+    x_center_full = (1.0 + extra_right_frac - extra_left_frac) / 2.0
+
+    # If the legend should be below, place it now centered to the full figure
+    if show_legend and legend_handles_labels is not None:
+        handles, labels_ = legend_handles_labels
+        leg = fig.legend(
+            handles, labels_,
+            loc="upper center",
+            bbox_to_anchor=(x_center_full, -legend_pad),
+            frameon=legend_frame,
+            ncol=legend_ncol,
+            fontsize=8,
+            bbox_transform=fig.transFigure,
+        )
+        extra.append(leg)
+        fig.subplots_adjust(bottom=max(0.12, 0.06 + legend_pad))
 
     # --- Csoport-szeparátorok kirajzolása a csoportcím BAL széléhez igazítva ---
     if sep_specs and renderer:
@@ -505,29 +555,21 @@ def save_bar(
             ax.add_line(sep_line)
             extra.append(sep_line)
 
+    # 4) opcionális: cím középre, a teljes export-szélességhez mérve
     if title:
-        # számoljuk ki, mennyivel lóg ki a tartalom a figura bal/jobb szélein (tight mentés miatt)
-        extra_left_frac = 0.0
-        extra_right_frac = 0.0
-        if renderer and extra:
-            fig_w = float(fig.bbox.width)
-            try:
-                min_x = min(a.get_window_extent(renderer=renderer).x0 for a in extra)
-                max_x = max(a.get_window_extent(renderer=renderer).x1 for a in extra)
-                # ha a bal legszélső artist a figura bal szélén túlra lóg, min_x negatív → ennyivel tágul a bal oldal
-                extra_left_frac = max(0.0, -min_x / fig_w)
-                # ha a jobb legszélső artist a figura jobb szélén túlra lóg, max_x > fig_w → ennyivel tágul a jobb oldal
-                extra_right_frac = max(0.0, (max_x - fig_w) / fig_w)
-            except Exception:
-                pass
-
-        # a végső kép közepe: (1 + jobb_tágulás - bal_tágulás) / 2
-        x_center_full = (1.0 + extra_right_frac - extra_left_frac) / 2.0
         st = fig.text(x_center_full, 0.985, title, ha="center", va="top")
         extra.append(st)
-        # egy kevés hely a címnek
         fig.subplots_adjust(top=0.92)
 
+    # 5) tight_layout – a bal és felső keret tiszteletben tartásával; ne dobjon warningot szűk esetekben
+    import warnings
+    tl_rect_left = float(reserved_left) if reserved_left is not None else 0.06
+    tl_rect_top = 0.92 if title else 0.98
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UserWarning)
+        fig.tight_layout(rect=[tl_rect_left, 0.0, 1.0, tl_rect_top])
+
+    # 6) mentés – az összes extra artisttal (legend, csoportcímek, szeparátorok, cím)
     fig.savefig(out_path, bbox_inches="tight", bbox_extra_artists=extra)
 
     plt.close(fig)

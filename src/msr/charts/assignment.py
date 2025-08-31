@@ -211,7 +211,7 @@ def render_assignment(
             # jelmagyarázat
             show_legend=spec.get("show_legend", True),
             legend_below=spec.get("legend_below", True),
-            legend_pad=spec.get("legend_pad", 0.12),
+            legend_pad=spec.get("legend_pad", -0.04),
             legend_ncol=spec.get("legend_ncol", 2),
             main_label=spec.get("main_label", "Az Ön értékei"),
             overlay_label=spec.get("overlay_label", "Hasonló árbevételű cégek átlagos értékei"),
