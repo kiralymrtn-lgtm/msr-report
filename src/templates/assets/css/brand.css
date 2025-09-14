@@ -386,7 +386,7 @@ h1, h2, h3 {
   --split-right-pad: 0mm;          /* jobb hasáb belső jobb padding (ha kell) */
 
   /* Magyarázó címsor (jobb oldali „chip”) */
-  --explain-title-font-size: 8mm;
+  --explain-title-font-size: 12pt;
   --explain-title-color: var(--text);         /* szöveg a chipen */
   --explain-title-bg: var(--brand-secondary);  /* chip háttér */
   --explain-title-pad-y: 2mm;

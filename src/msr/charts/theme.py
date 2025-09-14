@@ -17,27 +17,50 @@ DEFAULT_PALETTE: dict[str, str] = {
 }
 
 def ensure_rubik_font() -> None:
-    """Regisztrálja a Rubik TTF-et Matplotlibhez, ha megtalálja (idempotens)."""
-    try:
-        fam = plt.rcParams.get("font.family")
-        if fam == "Rubik" or fam == ["Rubik"]:
-            return
-    except Exception:
-        pass
+    """Regisztrálja a Rubik TTF(eke)t Matplotlibhez, ha megtalálja (idempotens)."""
+    # Ha már Rubik az aktív család, kilépünk
+    fam = plt.rcParams.get("font.family")
+    if fam == "Rubik" or fam == ["Rubik"]:
+        return
 
+    # Lehetséges helyek (Regular/Variable + BOLD!)
+    here = Path(__file__).resolve()
+    project_root = here.parents[3]  # .../src/msr/charts -> projekt gyökér
     candidates = [
-        Path.cwd() / "local" / "assets" / "fonts" / "Rubik" / "Rubik-VariableFont_wght.ttf",
-        Path.cwd() / "local" / "assets" / "fonts" / "Rubik" / "Rubik-Regular.ttf",
-        Path(__file__).resolve().parents[2] / "templates" / "assets" / "fonts" / "Rubik" / "Rubik-VariableFont_wght.ttf",
+        # local/ alatt
+        project_root / "local" / "assets" / "fonts" / "Rubik" / "Rubik-Bold.ttf",
+        project_root / "local" / "assets" / "fonts" / "Rubik" / "Rubik-Regular.ttf",
+        project_root / "local" / "assets" / "fonts" / "Rubik" / "Rubik-VariableFont_wght.ttf",
+        # templates/ alatt (repo része)
+        project_root / "templates" / "assets" / "fonts" / "Rubik" / "Rubik-Bold.ttf",
+        project_root / "templates" / "assets" / "fonts" / "Rubik" / "Rubik-Regular.ttf",
+        project_root / "templates" / "assets" / "fonts" / "Rubik" / "Rubik-VariableFont_wght.ttf",
     ]
+
+    found_any = False
     for p in candidates:
         try:
             if p.exists():
                 fm.fontManager.addfont(str(p))
-                plt.rcParams["font.family"] = "Rubik"
-                break
+                found_any = True
         except Exception:
             pass
+
+    # Ha találtunk legalább egy Rubik fájlt, állítsuk be alapértelmezettnek
+    if found_any:
+        plt.rcParams["font.family"] = "Rubik"
+        # opcionálisan: a sans-serif lista elejére is betesszük
+        try:
+            ss = plt.rcParams.get("font.sans-serif", [])
+            if isinstance(ss, str):
+                ss = [ss]
+            plt.rcParams["font.sans-serif"] = ["Rubik", *[x for x in ss if x != "Rubik"]]
+        except Exception:
+            pass
+    else:
+        # Nem találtuk – marad a fallback (DejaVu)
+        # (Ha szeretnél, ide tehetsz console logot is.)
+        pass
 
 def apply_minimal_theme(*args, **kwargs) -> None:
     """Visszafogott (grid és fölös spines nélkül) + brand színezés és Rubik font."""
@@ -46,6 +69,8 @@ def apply_minimal_theme(*args, **kwargs) -> None:
     plt.rcParams.update({
         "text.color": pal["text"],
         "axes.labelcolor": pal["text"],
+        "axes.titleweight": "bold",
+        "axes.titlesize": 12,  # ← globális title fontsize
         "xtick.color": pal["text"],
         "ytick.color": pal["text"],
         # keret minimalizálása

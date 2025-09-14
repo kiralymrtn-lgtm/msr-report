@@ -9,7 +9,7 @@ parancsok:
 - pages-validate: riport struktúra bemutatása
 - render-structure: teljes riport a YAML-manifesztből
 """
-import typer
+import typer, yaml
 from rich.console import Console
 from pathlib import Path
 
@@ -17,6 +17,7 @@ console = Console()
 
 # belső segédek
 from .utils.paths import local_path, ensure_dir, local_root
+from .utils.templating import format_tree
 from .data.manifest import load_structure, summarize
 from .commands.utils import resolve_brand_css_paths
 from .commands import rendering as R
@@ -119,9 +120,16 @@ def cmd_render_thanks():
 # teljes riport renderelése YAML-ből (több COVER is támogatott)
 # ──────────────────────────────────────────────────────────────
 @app.command("render-structure")
-def cmd_render_structure(struct_path: str = typer.Option(
-    None, help="Opcionális: egyedi YAML útvonal. Alapértelmezés: local/config/report_structure.yaml")):
-    R.render_structure(struct_path)
+def cmd_render_structure(
+    struct_path: str = typer.Option(
+        None, help="Opcionális: egyedi YAML útvonal. Alapértelmezés: local/config/report_structure.yaml"
+    ),
+    partner_id: str | None = typer.Option(
+        None, "--partner-id", help="Helyettesítő változó a YAML-ben (pl. {partner})."
+    ),
+):
+    fmt_ctx = {"partner": partner_id} if partner_id else None
+    R.render_structure(struct_path, fmt_ctx=fmt_ctx)
 
 # ──────────────────────────────────────────────────────────────
 # chart-ok renderelése YAML-ből

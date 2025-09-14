@@ -22,6 +22,7 @@ def save_radar(
     series_main: Sequence[float],
     series_comp: Optional[Sequence[float]] = None,
     title: Optional[str] = None,
+    title_fontsize: float | None = None,
     r_range: Optional[Tuple[float, float]] = None,
     size_cm: Optional[Tuple[float, float]] = None,
     filename: Optional[str] = None,
@@ -108,7 +109,7 @@ def save_radar(
         ax.set_rmax(r_range[1])
 
     if title:
-        ax.set_title(title, pad=16)
+        ax.set_title(title, pad=16, fontweight="bold")
 
     leg = None
     if show_legend:

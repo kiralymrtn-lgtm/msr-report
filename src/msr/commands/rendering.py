@@ -1,4 +1,5 @@
 import typer
+from typing import Any
 from rich.console import Console
 console = Console()
 
@@ -9,6 +10,8 @@ from ..pdf.html_to_pdf import html_to_pdf
 from ..brand import get_brand
 from ..data.manifest import load_structure, summarize
 from .utils import resolve_brand_css_paths
+
+from ..utils.templating import format_tree
 
 
 def render_cover_demo() -> None:
@@ -275,10 +278,8 @@ def render_thanks() -> None:
 # teljes riport renderelése YAML-ből (több COVER is támogatott)
 # ──────────────────────────────────────────────────────────────
 def render_structure(
-    struct_path: str = typer.Option(
-        None,
-        help="Opcionális: egyedi YAML útvonal. Alapértelmezés: local/config/report_structure.yaml",
-    )
+    struct_path: str | None = None,
+    fmt_ctx: dict[str, Any] | None = None,
 ) -> None:
     """
     Beolvassa a report_structure.yaml-t és a teljes decket egyben rendereli:
@@ -302,6 +303,9 @@ def render_structure(
     # 3) YAML betöltése
     path = Path(struct_path) if struct_path else None
     struct = load_structure(path)
+    # Optional string interpolation for placeholders (e.g. {partner})
+    if fmt_ctx:
+        struct = format_tree(struct, **fmt_ctx)
     pages = struct.get("pages", [])
     page_config = struct.get("page_config", {}) or {}
 
@@ -312,6 +316,28 @@ def render_structure(
             return local_path()  # local gyökér
         parts = [p for p in rel.split("/") if p]
         return local_path(*parts)
+
+    def _resolve_image_path(rel: str) -> str:
+        """
+        Resolve image paths from YAML:
+        - interpret as relative to local/ by default
+        - if it starts with 'assets/…', prefer 'local/output/assets/…' (generated charts)
+        - return absolute path string if found, otherwise the original string
+        """
+        if not rel:
+            return rel
+        # try as-is under local/
+        img = _lp(rel)
+        if not img.exists():
+            parts = [p for p in rel.split("/") if p]
+            if parts and parts[0] == "assets":
+                candidate = local_path("output", *parts)  # output/assets/…
+                if candidate.exists():
+                    img = candidate
+        try:
+            return str(img.resolve()) if isinstance(img, Path) and img.exists() else rel
+        except Exception:
+            return rel
 
     # 5) Slides (egységes, sorrendtartó lista: cover VAGY content)
     slides: list[dict] = []
@@ -394,16 +420,7 @@ def render_structure(
             if section["layout"] == "split":
                 rel = c.get("image_path")
                 if rel:
-                    # default: resolve relative to local/
-                    img = _lp(rel)
-                    if not img.exists():
-                        # Fallback: if YAML uses "assets/…" assume generated charts live under "output/assets/…"
-                        parts = [p for p in rel.split("/") if p]
-                        if parts and parts[0] == "assets":
-                            img_candidate = local_path("output", *parts)
-                            if img_candidate.exists():
-                                img = img_candidate
-                    section["image_path"] = str(img.resolve()) if img.exists() else str(img)
+                    section["image_path"] = _resolve_image_path(rel)
                 if c.get("explain_title"):       section["explain_title"]       = c["explain_title"]
                 if c.get("explain_paragraph"):   section["explain_paragraph"]   = c["explain_paragraph"]
                 if c.get("explain_html"):        section["explain_html"]        = c["explain_html"]
@@ -412,8 +429,22 @@ def render_structure(
                 if c.get("explain_title_size"):  section["explain_title_size"]  = c["explain_title_size"]
 
                 # ÚJ: tömb-alapú több-blokkos támogatás és per-slide slot gap
-                if c.get("left_blocks"):    section["left_blocks"]  = c["left_blocks"]
-                if c.get("right_blocks"):   section["right_blocks"] = c["right_blocks"]
+                if c.get("left_blocks"):
+                    _lbs = []
+                    for blk in c["left_blocks"]:
+                        b = dict(blk)
+                        if "image_path" in b and b["image_path"]:
+                            b["image_path"] = _resolve_image_path(b["image_path"])
+                        _lbs.append(b)
+                    section["left_blocks"] = _lbs
+                if c.get("right_blocks"):
+                    _rbs = []
+                    for blk in c["right_blocks"]:
+                        b = dict(blk)
+                        if "image_path" in b and b["image_path"]:
+                            b["image_path"] = _resolve_image_path(b["image_path"])
+                        _rbs.append(b)
+                    section["right_blocks"] = _rbs
                 if c.get("split_slot_gap"): section["split_slot_gap"] = c["split_slot_gap"]
 
                 # Számozott fallback kulcsok másolása (1..3) – left_*/right_* tartalmak
@@ -426,8 +457,16 @@ def render_structure(
                     for suffix in ("_html", "_paragraph", "_image_path"):
                         ck_l = f"left_content{i}{suffix}"
                         ck_r = f"right_content{i}{suffix}"
-                        if ck_l in c: section[ck_l] = c[ck_l]
-                        if ck_r in c: section[ck_r] = c[ck_r]
+                        if ck_l in c:
+                            val = c[ck_l]
+                            if suffix == "_image_path":
+                                val = _resolve_image_path(val)
+                            section[ck_l] = val
+                        if ck_r in c:
+                            val = c[ck_r]
+                            if suffix == "_image_path":
+                                val = _resolve_image_path(val)
+                            section[ck_r] = val
 
                 # Extra: támogatjuk a 'content{i}_*' és 'explain_title{i}' rövid kulcsokat is (jobb oldalra)
                 for i in range(1, 4):
@@ -435,7 +474,11 @@ def render_structure(
                     if ex_key in c: section[ex_key] = c[ex_key]
                     for suffix in ("_html", "_paragraph", "_image_path"):
                         ck = f"content{i}{suffix}"
-                        if ck in c: section[ck] = c[ck]
+                        if ck in c:
+                            val = c[ck]
+                            if suffix == "_image_path":
+                                val = _resolve_image_path(val)
+                            section[ck] = val
 
             slides.append(section)
 

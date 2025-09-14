@@ -30,6 +30,20 @@ def _env() -> Environment:
         trim_blocks=True,   # szépen formázott kimenet (levágja az üres whitespace-t blokkok előtt)
         lstrip_blocks=True,
     )
+    # Back-compat helper: some templates call attribute(obj, name)
+    # Jinja no longer exposes this by default, so we register a safe shim here.
+    def _j2_attribute(obj, name):  # pragma: no cover - tiny glue function
+        try:
+            # attribute-style access first
+            return getattr(obj, name)
+        except Exception:
+            try:
+                # dict / mapping access fallback
+                return obj[name]
+            except Exception:
+                return None
+
+    env.globals["attribute"] = _j2_attribute
     return env
 
 def render_to_html_file(

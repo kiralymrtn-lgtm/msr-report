@@ -255,7 +255,7 @@ def render_assignment(
             title=spec.get("title"),
             col_widths=spec.get("col_widths", (0.52, 0.24, 0.24)),
             zebra_colors=spec.get("zebra_colors"),
-            font_size=spec.get("font_size", 8.0),
+            font_size=spec.get("font_size", 10.0),
         ))
         results["table"].append(p)
 

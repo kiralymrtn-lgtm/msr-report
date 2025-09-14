@@ -49,6 +49,7 @@ def save_column(
     size_cm: tuple[float, float] | None = None,
     filename: str = "column.png",
     palette: dict[str, str] | None = None,
+    title_fontsize: float | None = None,
     compare_values: Sequence[float] | None = None,
     highlight_index: int | None = None,
     show_x_labels: bool = False,
@@ -230,7 +231,10 @@ def save_column(
     if y_range:
         ax.set_ylim(y_range)
     if title:
-         ax.set_title(title, pad=6)
+        _kw = {"pad": 6, "fontweight": "bold"}
+        if title_fontsize is not None:
+            _kw["fontsize"] = title_fontsize
+        ax.set_title(title, **_kw)
     #if title:
     #    fig.suptitle(title, ha="center", y=0.99)  # a teljes képre középre
     #    fig.tight_layout(rect=[0, 0, 1, 0.96])  # hagyjunk helyet felül
@@ -270,6 +274,7 @@ def save_bar(
         palette: dict[str, str] | None = None,
         compare_values: Sequence[float] | None = None,
         highlight_index: int | None = None,
+        title_fontsize: float | None = None,
         # Legend / labels
         main_label: str = "Értékek",
         comp_label: str = "Csoport",
@@ -557,7 +562,12 @@ def save_bar(
 
     # 4) opcionális: cím középre, a teljes export-szélességhez mérve
     if title:
-        st = fig.text(x_center_full, 0.985, title, ha="center", va="top")
+        st = fig.text(
+            x_center_full, 0.985, title,
+            ha="center", va="top",
+            fontweight="bold",
+            fontsize=(title_fontsize if title_fontsize is not None else None),
+        )
         extra.append(st)
         fig.subplots_adjust(top=0.92)
 

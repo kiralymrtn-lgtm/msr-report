@@ -110,7 +110,7 @@ def save_table(
             cell.set_linewidth(grid_width if grid else 0)
 
     if title:
-        ax.set_title(title, pad=8)
+        ax.set_title(title, pad=8, fontweight="bold")
 
     out_dir = local_path("output", "assets", "tables")
     ensure_dir(out_dir)
