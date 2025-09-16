@@ -10,11 +10,9 @@ ROOT = Path(__file__).resolve().parents[2]
 XLSM = ROOT / "local" / "data" / "input" / "Egyedi reportok adatbázis_2024_anonim.xlsm"
 YAML = ROOT / "local" / "config" / "assignment_v2.yaml"
 
-# db = az "Adatbázis" sheet DataFrame-je
-parser = argparse.ArgumentParser(description="MSR v2 riport generálás")
-parser.add_argument("--limit", type=int, default=1, help="Az első N ResponseId feldolgozása (alapértelmezés: 1)")
-args = parser.parse_args()
+LIMIT = 5  # Az első N ResponseID feldolgozása
 
+# db = az "Adatbázis" sheet DataFrame-je
 db = pd.read_excel(XLSM, sheet_name="Adatbázis", engine="openpyxl")
 
 # ResponseId oszlopból vegyük az első N értéket
@@ -22,7 +20,7 @@ if "ResponseID" not in db.columns:
     raise KeyError("Az Excelben nem található 'ResponseId' oszlop.")
 
 response_ids = (
-    db["ResponseID"].dropna().astype(str).head(args.limit).tolist()
+    db["ResponseID"].dropna().astype(str).head(LIMIT).tolist()
 )
 
 all_moved = []
