@@ -1,6 +1,7 @@
 import numpy as np, math
 import textwrap as tw
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 from pathlib import Path
 from typing import Sequence, Optional, Tuple
 from .base import fig_ax, place_legend, wrap_title, ensure_out_dirs, OUT_CHARTS
@@ -50,7 +51,21 @@ def save_radar(
         return tw.fill(str(v), width=int(wrap), break_long_words=False, break_on_hyphens=True)
 
     ax.set_xticklabels([_wrap_label(x) for x in labels], fontsize=s.labels.x_fontsize)
-    ax.tick_params(axis="y", which="both", labelsize=s.labels.y_fontsize)
+
+    # --- R fixálása 0..5-re és egész osztásra ---
+    ax.set_rmin(0)
+    ax.set_rmax(5)
+
+    # pontosan egész lépésköz (0,1,2,3,4,5) -> mindig ugyanannyi kör
+    ax.yaxis.set_major_locator(mticker.FixedLocator([1,2,3,4,5]))
+
+    # minor teljes tiltása, hogy ne duplázódjon semmi
+    ax.minorticks_off()
+    ax.yaxis.set_minor_locator(mticker.NullLocator())
+    ax.yaxis.set_minor_formatter(mticker.NullFormatter())
+
+    # feliratok: mindig egész számként
+    ax.yaxis.set_major_formatter(mticker.StrMethodFormatter('{x:.0f}'))
 
     # finom grid styling (halvány körök + sugarak)
     grid_color = s.palette.text
