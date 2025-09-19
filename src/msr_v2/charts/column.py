@@ -83,11 +83,7 @@ def save_column(
     else:
         ax.set_xticks([]); ax.set_yticks([])
 
-    if s.legend.show:
-        place_legend(ax, fig, s)
     ax.set_yticks([])
-
-    fig.tight_layout()
 
     # Cím: egyszer állítjuk be és a FIGURÁHOZ igazítva középre toljuk
     if title:
@@ -97,14 +93,25 @@ def save_column(
             fontweight=s.title.weight,
             pad=s.title.pad,
         )
-        # előbb layout, majd középre igazítás a figura szélességéhez
+        # Ha a legenda alul van, előre foglaljunk helyet az x-label + legend számára
+        if getattr(s.legend, "below", False) and getattr(s.legend, "reserve", None):
+            fig.subplots_adjust(bottom=float(s.legend.reserve))
+        # layout, majd a cím középre igazítása a FIGURA szélességéhez viszonyítva
         fig.tight_layout()
-        bbox = ax.get_position()  # axes helyzete a figurán belül
+        bbox = ax.get_position()
         x_fig_center_in_axes = (0.5 - bbox.x0) / bbox.width
         t.set_position((x_fig_center_in_axes, t.get_position()[1]))
+        # A LEGENDÁT csak a végén tegyük ki, hogy a layout már ne mozdítsa el
+        if s.legend.show:
+            place_legend(ax, fig, s)
+
     else:
-        # ha nincs cím, ettől még legyen rendezett a layout
+        # ha nincs cím, előbb foglaljunk helyet alul (ha kell), aztán layout, végül legenda
+        if getattr(s.legend, "below", False) and getattr(s.legend, "reserve", None):
+            fig.subplots_adjust(bottom=float(s.legend.reserve))
         fig.tight_layout()
+        if s.legend.show:
+            place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
     fig.savefig(out, bbox_inches="tight"); plt.close(fig)

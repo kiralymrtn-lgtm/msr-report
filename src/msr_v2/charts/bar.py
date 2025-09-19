@@ -79,8 +79,7 @@ def save_bar(
     else:
         ax.set_yticks([]); ax.set_xticks([])
 
-    if s.legend.show:
-        place_legend(ax, fig, s)
+
     fig.tight_layout()
 
     if title:
@@ -95,6 +94,9 @@ def save_bar(
         bbox = ax.get_position()
         x_fig_center_in_axes = (0.5 - bbox.x0) / bbox.width
         t.set_position((x_fig_center_in_axes, t.get_position()[1]))
+
+    if s.legend.show:
+        place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
     fig.savefig(out, bbox_inches="tight"); plt.close(fig)

@@ -6,10 +6,12 @@ class LegendCfg:
     show: bool = True
     below: bool = True
     pad: float = 0.10
+    reserve: Optional[float] = None
     ncol: int = 2
     loc: str = "lower center"
     frameon: bool = False
     fontsize: float = 8.0
+
 
 @dataclass
 class TitleCfg:

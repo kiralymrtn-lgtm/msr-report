@@ -1,5 +1,3 @@
-# egyetlen helyen állítjuk az rcParams-t
-
 from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
