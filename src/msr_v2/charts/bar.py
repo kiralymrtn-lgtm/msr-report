@@ -110,10 +110,7 @@ def save_bar(
         place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
-    # Ha nincs cím, a felső pufferen szorítunk, hogy ne maradjon üres hely a tetején
-    if not has_title:
-        # csak erre az ábrára érvényes – felülírja a base.py globális padjeit
-        fig.set_constrained_layout_pads(h_pad=0.02, w_pad=0.02, hspace=0.02, wspace=0.02)
+
     fig.savefig(out, bbox_inches="tight", pad_inches=0.2);
     plt.close(fig)  # ← pad_inches hozzáadása
     return out
