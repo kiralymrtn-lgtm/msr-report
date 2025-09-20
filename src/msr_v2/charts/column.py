@@ -7,8 +7,6 @@ from .base import fig_ax, place_legend, wrap_title, ensure_out_dirs, OUT_CHARTS
 from ..config import Style
 from ..theme import apply_theme
 
-LEGEND_BELOW = 0.10  # a legenda mennyivel legyen az axes alatt (axes-frakció)
-
 def save_column(
     values: Sequence[float],
     labels: Sequence[str],
@@ -110,5 +108,6 @@ def save_column(
             place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
-    fig.savefig(out); plt.close(fig)
+    fig.savefig(out, bbox_inches="tight", pad_inches=0.2);
+    plt.close(fig)  # ← pad_inches hozzáadása
     return out

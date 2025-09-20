@@ -29,12 +29,11 @@ def place_legend(ax, fig, style: Style):
         leg = fig.legend(
             H, L,
             loc="lower center",
-            bbox_to_anchor=(0.5, style.legend.pad),   # ← csak pad, nincs extra offset
+            bbox_to_anchor=(0.5, -0.05),   # ← ÚJ: fix érték a pad helyett
             ncol=style.legend.ncol,
             frameon=getattr(style.legend, "frameon", False),
             prop={"size": getattr(style.legend, "fontsize", None)} if getattr(style.legend, "fontsize", None) else None,
         )
-        leg.set_in_layout(True)
         return leg
     return ax.legend(H, L, loc=style.legend.loc)
 

@@ -95,5 +95,6 @@ def save_bar(
         place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
-    fig.savefig(out); plt.close(fig)
+    fig.savefig(out, bbox_inches="tight", pad_inches=0.2);
+    plt.close(fig)  # ← pad_inches hozzáadása
     return out
