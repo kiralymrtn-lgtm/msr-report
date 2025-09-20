@@ -7,6 +7,8 @@ from .base import fig_ax, place_legend, wrap_title, ensure_out_dirs, OUT_CHARTS
 from ..config import Style
 from ..theme import apply_theme
 
+LEGEND_BELOW = 0.10  # a legenda mennyivel legyen az axes alatt (axes-frakció)
+
 def save_column(
     values: Sequence[float],
     labels: Sequence[str],
@@ -79,6 +81,7 @@ def save_column(
         ax.set_xticklabels(tick_labels, fontsize=s.labels.x_fontsize)
         for spine in ax.spines.values():
             spine.set_visible(False)
+        ax.tick_params(axis="x", pad=12)
         ax.tick_params(axis="y", which="both", left=False, labelleft=False)
     else:
         ax.set_xticks([]); ax.set_yticks([])
@@ -93,26 +96,19 @@ def save_column(
             fontweight=s.title.weight,
             pad=s.title.pad,
         )
-        # Ha a legenda alul van, előre foglaljunk helyet az x-label + legend számára
-        if getattr(s.legend, "below", False) and getattr(s.legend, "reserve", None):
-            fig.subplots_adjust(bottom=float(s.legend.reserve))
-        # layout, majd a cím középre igazítása a FIGURA szélességéhez viszonyítva
-        fig.tight_layout()
+
+        # csak középre igazítás a FIGURA szélességéhez viszonyítva
         bbox = ax.get_position()
         x_fig_center_in_axes = (0.5 - bbox.x0) / bbox.width
         t.set_position((x_fig_center_in_axes, t.get_position()[1]))
-        # A LEGENDÁT csak a végén tegyük ki, hogy a layout már ne mozdítsa el
+
         if s.legend.show:
             place_legend(ax, fig, s)
 
     else:
-        # ha nincs cím, előbb foglaljunk helyet alul (ha kell), aztán layout, végül legenda
-        if getattr(s.legend, "below", False) and getattr(s.legend, "reserve", None):
-            fig.subplots_adjust(bottom=float(s.legend.reserve))
-        fig.tight_layout()
         if s.legend.show:
             place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
-    fig.savefig(out, bbox_inches="tight"); plt.close(fig)
+    fig.savefig(out); plt.close(fig)
     return out

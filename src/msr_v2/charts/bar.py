@@ -79,9 +79,6 @@ def save_bar(
     else:
         ax.set_yticks([]); ax.set_xticks([])
 
-
-    fig.tight_layout()
-
     if title:
         t = ax.set_title(
             wrap_title(title, s),
@@ -90,7 +87,6 @@ def save_bar(
             pad=s.title.pad,
         )
         # fontos: előbb layout, aztán középre igazítás a FIGURA szélességéhez
-        fig.tight_layout()
         bbox = ax.get_position()
         x_fig_center_in_axes = (0.5 - bbox.x0) / bbox.width
         t.set_position((x_fig_center_in_axes, t.get_position()[1]))
@@ -99,5 +95,5 @@ def save_bar(
         place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
-    fig.savefig(out, bbox_inches="tight"); plt.close(fig)
+    fig.savefig(out); plt.close(fig)
     return out
