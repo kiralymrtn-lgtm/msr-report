@@ -26,6 +26,11 @@ def save_bar(
 
     fig, ax = fig_ax(s)
     y = np.arange(len(labels))
+    # Ha csak 1 kategória van, tágítsuk ki a függőleges tartományt,
+    # hogy a bar_height változás vizuálisan is erősebben látszódjon.
+    if len(labels) == 1:
+        # Alapból -0.5..0.5 ~ 1.0 a span. Tegyük -1.0..1.0-ra (span=2.0).
+        ax.set_ylim(-1.0, 1.0)
     # Bar thickness (bar height) – overridable from YAML via `overrides.bar_height`
     bar_height = float((overrides or {}).get("bar_height", 0.8))
     bars = ax.barh(y, values, height=bar_height, color=s.palette.secondary, label="Az Ön értékei")
@@ -79,7 +84,7 @@ def save_bar(
     else:
         ax.set_yticks([]); ax.set_xticks([])
 
-    if title:
+    if title and str(title).strip():
         t = ax.set_title(
             wrap_title(title, s),
             fontsize=s.title.size,
