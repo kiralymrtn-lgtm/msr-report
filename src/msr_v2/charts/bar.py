@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import re
 from pathlib import Path
 from typing import Sequence, Optional
 from .base import fig_ax, place_legend, wrap_title, ensure_out_dirs, OUT_CHARTS
@@ -34,9 +35,12 @@ def save_bar(
     group_colors = ov.get("group_colors", {})
     group_sep = bool(ov.get("group_sep", False))
     # régi assignmentben: -1.80 tipikus
-    group_title_offset_axes = float(ov.get("group_title_offset_axes", -1.00))
-    # opcionális: előre foglalt bal margó (axes bal oldalán kívüli címekhez)
-    group_title_reserve_left = float(ov.get("group_title_reserve_left", 0.30))
+    group_title_offset_axes = float(ov.get("group_title_offset_axes", -0.35))
+    group_title_reserve_left = float(ov.get("group_title_reserve_left", 0.40))
+    # Egyszerűsítés: nincs forgatás
+    group_title_rotation = 0.0
+    # Fix tördelési szélesség (karakterben) – YAML override: group_title_wrap
+    group_title_wrap_chars = int(ov.get("group_title_wrap", 10))
     # y-címkék látszódjanak-e
     show_y_labels_ov = ov.get("show_y_labels")
     if show_y_labels_ov is not None:
@@ -67,54 +71,7 @@ def save_bar(
     bar_height = float((overrides or {}).get("bar_height", 0.8))
     bars = ax.barh(y, values, height=bar_height, color=bar_colors, label="Az Ön értékei")
 
-    # Csoport elválasztók és csoportcímek kirajzolása
-    if group_labels and isinstance(group_labels, list) and len(group_labels) == len(labels):
-        # group → y indexek (megtartva a megjelenési sorrendet)
-        idx_by_group = {}
-        order = []
-        for i, gname in enumerate(group_labels):
-            if gname not in idx_by_group:
-                idx_by_group[gname] = []
-                order.append(gname)
-            idx_by_group[gname].append(y[i])
 
-        # opcionális elválasztó vonalak csoportok között
-        if group_sep and len(order) > 1:
-            for k in range(len(order) - 1):
-                last_y = max(idx_by_group[order[k]])
-                y_sep = float(last_y) + 0.5
-                # A vonal a LABEL-ek között fusson, balra egészen a csoportcímek bal széléig.
-                # Ehhez x-ben axes-frakciót használunk (y adatkoordinátában marad).
-                x0_axes = group_title_offset_axes  # bal vég: csoportcímek bal széle
-                x1_axes = -0.02  # jobb vég: a tengely (0.0 → csak a label-oszlopban fusson)
-                ax.plot([x0_axes, x1_axes], [y_sep, y_sep],
-                        transform=ax.get_yaxis_transform(),
-                        color="#D0D5DD", linewidth=0.8, solid_capstyle="butt",
-                        clip_on=False)
-
-        # csoportcímek a bal oldalon (axes transzformációban, így az offset axes-frakció)
-        # opcionális tördelés támogatása: overrides.group_title_wrap
-        wrap_w = ov.get("group_title_wrap")
-
-        def _wrap_group_title(txt: str) -> str:
-            if wrap_w is None:
-                return str(txt)
-            try:
-                w = int(wrap_w)
-            except Exception:
-                w = None
-            if not w:
-                return str(txt)
-            return tw.fill(str(txt), width=w, break_long_words=False, break_on_hyphens=True)
-
-        for gname in order:
-            yy = idx_by_group[gname]
-            y_center = float(sum(yy) / len(yy))
-            ha = "right" if group_title_offset_axes < 0 else "left"
-            ax.text(group_title_offset_axes, y_center, _wrap_group_title(gname),
-                    transform=ax.get_yaxis_transform(), va="center", ha=ha,
-                    fontsize=getattr(s.labels, "y_fontsize", 8), color=s.palette.text,
-                    clip_on=False, zorder=4)
 
     # overlay FÜGGŐLEGES vonalak (átlag)
     if overlay_values is not None:
@@ -170,6 +127,100 @@ def save_bar(
     else:
         ax.set_yticks([]); ax.set_xticks([])
 
+    # Csoport elválasztók és csoportcímek kirajzolása – egyszerűsített (forgatás nélkül)
+    if group_labels and isinstance(group_labels, list) and len(group_labels) == len(labels):
+        # group → y indexek (megjelenési sorrenddel)
+        idx_by_group, order = {}, []
+        for i, gname in enumerate(group_labels):
+            if gname not in idx_by_group:
+                idx_by_group[gname] = []
+                order.append(gname)
+            idx_by_group[gname].append(y[i])
+
+        # A label-oszlop bal széle (axes-frakcióban)
+        x_left_axes = group_title_offset_axes if group_title_offset_axes < 0 else -0.40
+
+        # A label-oszlop jobb széle = y-tick feliratok BAL széle – egy kis puffer
+        X_PAD = 0.005  # 0.5% axes-szélesség
+        try:
+            renderer = fig.canvas.get_renderer()
+        except Exception:
+            renderer = None
+        if renderer is None:
+            try:
+                fig.canvas.draw()
+                renderer = fig.canvas.get_renderer()
+            except Exception:
+                renderer = None
+
+        x_right_axes = -0.02  # tartalék érték, ha nincs renderer
+        if renderer is not None:
+            xs = []
+            for lab in ax.get_yticklabels():
+                if not lab.get_text():
+                    continue
+                try:
+                    bb = lab.get_window_extent(renderer=renderer)
+                    bb_ax = bb.transformed(ax.transAxes.inverted())
+                    xs.append(bb_ax.x0)  # a tick-felirat bal széle axes-koordinátában
+                except Exception:
+                    pass
+            if xs:
+                leftmost = min(xs)
+                x_right_axes = leftmost - X_PAD  # a group-label jobb széle épp a tick-bal széle előtt
+
+        # separator hossza (axes-frakció): ~12–15% szélesség bőven elég
+        sep_len = float(ov.get("group_sep_len", 0.14))
+        x_sep_left = x_right_axes - sep_len
+
+        # SEPARATOR a group címkék között – a teljes label-zónában (tick feliratok alatt is),
+        # de a sávok (bar-ok) előtt érjen véget.
+        if group_sep and len(order) > 1:
+            # 1) a label-zóna BAL széle: a group-címkék bal offsetje és a tick-feliratok bal széle közül a BALABB
+            # (hogy biztos a teljes label-teret lefedje)
+            left_label_axes = x_left_axes
+            if renderer is not None and xs:
+                tick_left = min(xs)  # tick-feliratok bal széle (axes-frakció)
+                left_label_axes = min(left_label_axes, tick_left) - 0.25  # kis extra puffer balra
+
+            # 2) a label-zóna JOBB széle: az x=0 adatvonal (baseline) pozíciója axes-frakcióban
+            #    így a vonal nem megy be a sávok közé
+            x0_pix = ax.transData.transform((0.0, 0.0))[0]
+            x0_axes = ax.transAxes.inverted().transform((x0_pix, 0.0))[0]
+            right_label_axes = x0_axes - 0.005  # kis puffer, hogy ne érjen bele a baseline-ba
+
+            for k in range(len(order) - 1):
+                last_y = max(idx_by_group[order[k]])
+                y_sep = float(last_y) + 0.5
+                ax.plot([left_label_axes, right_label_axes], [y_sep, y_sep],
+                        transform=ax.get_yaxis_transform(),
+                        color="#D0D5DD", linewidth=1.0, alpha=0.9, solid_capstyle="butt",
+                        clip_on=False)
+
+        # Fix tördelő: mindig 'group_title_wrap_chars' szélességgel
+        def _wrap_group_simple(txt: str) -> str:
+            norm = str(txt).replace("–", "-").replace("—", "-")
+            return tw.fill(norm,
+                           width=max(1, group_title_wrap_chars),
+                           break_long_words=False,
+                           break_on_hyphens=True)
+
+        # GROUP címkék kirajzolása: jobbra zártan, a tengely előtt
+        for gname in order:
+            yy = idx_by_group[gname]
+            y_center = float(sum(yy) / len(yy))
+            text = _wrap_group_simple(gname)
+
+            # a szöveg jobb széle fixen a x_right_axes vonalon legyen
+            ax.text(
+                x_right_axes, y_center, text,
+                transform=ax.get_yaxis_transform(),
+                va="center", ha="right",  # jobbra zárt
+                fontsize=getattr(s.labels, "y_fontsize", 8),
+                color=s.palette.text,
+                clip_on=False, zorder=4
+            )
+
     if has_title:
         # Cím középre igazítása a VIZUÁLIS tartomány felett (group + labels + bars együtt).
         # Nem hívunk draw()-t, így nem omlik össze a CL.
@@ -191,6 +242,10 @@ def save_bar(
             x=x_center,
             y=1.05,
         )
+
+    # Bal margó beállítása a group címeknek
+    if group_labels and isinstance(group_labels, list) and len(group_labels) == len(labels):
+        fig.subplots_adjust(left=group_title_reserve_left)
 
     if s.legend.show:
         s.chart_type = "bar"
