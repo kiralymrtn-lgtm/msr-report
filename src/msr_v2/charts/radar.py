@@ -79,6 +79,7 @@ def save_radar(
     if title: ax.set_title(wrap_title(title, s), pad=s.title.pad)
 
     if s.legend.show:
+        s.chart_type = "radar"
         place_legend(ax, fig, s)
     fig.tight_layout()
 

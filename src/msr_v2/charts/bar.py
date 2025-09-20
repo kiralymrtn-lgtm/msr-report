@@ -86,12 +86,14 @@ def save_bar(
             fontweight=s.title.weight,
             pad=s.title.pad,
         )
-        # fontos: előbb layout, aztán középre igazítás a FIGURA szélességéhez
+        # Fontos: előbb futtassuk le a constrained layoutot, majd igazítsunk középre
+        fig.canvas.draw()  # ← ÚJ: ezzel véglegesedik az axes pozíciója
         bbox = ax.get_position()
         x_fig_center_in_axes = (0.5 - bbox.x0) / bbox.width
         t.set_position((x_fig_center_in_axes, t.get_position()[1]))
 
     if s.legend.show:
+        s.chart_type = "bar"
         place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename

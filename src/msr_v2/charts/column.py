@@ -101,10 +101,12 @@ def save_column(
         t.set_position((x_fig_center_in_axes, t.get_position()[1]))
 
         if s.legend.show:
+            s.chart_type = "column"
             place_legend(ax, fig, s)
 
     else:
         if s.legend.show:
+            s.chart_type = "column"
             place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename

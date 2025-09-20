@@ -9,6 +9,14 @@ from ..theme import cm_to_in
 OUT_CHARTS = Path("local/output/assets/charts")
 OUT_TABLES = Path("local/output/assets/tables")
 
+# Legend függőleges eltolása chart-típusonként (figura-koordináta)
+LEGEND_OFFSET_BY_TYPE = {
+    "radar":  -0.00,
+    "bar":    -0.05,
+    "column": -0.08,
+}
+DEFAULT_LEGEND_OFFSET = -0.05
+
 def fig_ax(style: Style):
     fig, ax = plt.subplots(
         figsize=(cm_to_in(style.size.cm_w), cm_to_in(style.size.cm_h)),
@@ -26,14 +34,18 @@ def place_legend(ax, fig, style: Style):
     L = [labels[i] for i in idx]
 
     if style.legend.below:
+        chart_type = getattr(style, "chart_type", None)
+        offset_y = LEGEND_OFFSET_BY_TYPE.get(chart_type, DEFAULT_LEGEND_OFFSET)
+
         leg = fig.legend(
             H, L,
             loc="lower center",
-            bbox_to_anchor=(0.5, -0.05),   # ← ÚJ: fix érték a pad helyett
+            bbox_to_anchor=(0.5, offset_y),
             ncol=style.legend.ncol,
             frameon=getattr(style.legend, "frameon", False),
             prop={"size": getattr(style.legend, "fontsize", None)} if getattr(style.legend, "fontsize", None) else None,
         )
+        leg.set_in_layout(True)  # fontos a constrained_layout-hoz
         return leg
     return ax.legend(H, L, loc=style.legend.loc)
 
