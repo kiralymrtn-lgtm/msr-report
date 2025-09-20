@@ -26,11 +26,19 @@ def save_bar(
 
     fig, ax = fig_ax(s)
     y = np.arange(len(labels))
-    # Ha csak 1 kategória van, tágítsuk ki a függőleges tartományt,
-    # hogy a bar_height változás vizuálisan is erősebben látszódjon.
+
+    # Van-e tényleges (nem üres) cím?
+    has_title = bool(title and str(title).strip())
+
+    # Egysávos ábrán a függőleges tartományt a cím függvényében állítjuk:
+    # - ha van cím: szimmetrikus (-1..1), hagyunk neki helyet
+    # - ha nincs cím: feljebb toljuk a sávot (-1..0.8), így kevesebb üres hely marad felül
     if len(labels) == 1:
-        # Alapból -0.5..0.5 ~ 1.0 a span. Tegyük -1.0..1.0-ra (span=2.0).
-        ax.set_ylim(-1.0, 1.0)
+        if has_title:
+            ax.set_ylim(-1.0, 1.0)
+        else:
+            ax.set_ylim(-1.0, 0.7)
+
     # Bar thickness (bar height) – overridable from YAML via `overrides.bar_height`
     bar_height = float((overrides or {}).get("bar_height", 0.8))
     bars = ax.barh(y, values, height=bar_height, color=s.palette.secondary, label="Az Ön értékei")
@@ -84,7 +92,7 @@ def save_bar(
     else:
         ax.set_yticks([]); ax.set_xticks([])
 
-    if title and str(title).strip():
+    if has_title:
         t = ax.set_title(
             wrap_title(title, s),
             fontsize=s.title.size,
@@ -102,6 +110,10 @@ def save_bar(
         place_legend(ax, fig, s)
 
     out = OUT_CHARTS / filename
+    # Ha nincs cím, a felső pufferen szorítunk, hogy ne maradjon üres hely a tetején
+    if not has_title:
+        # csak erre az ábrára érvényes – felülírja a base.py globális padjeit
+        fig.set_constrained_layout_pads(h_pad=0.02, w_pad=0.02, hspace=0.02, wspace=0.02)
     fig.savefig(out, bbox_inches="tight", pad_inches=0.2);
     plt.close(fig)  # ← pad_inches hozzáadása
     return out
