@@ -1,7 +1,8 @@
 #
 
 from pathlib import Path
-import textwrap
+import numpy as np
+import textwrap as tw
 import matplotlib.pyplot as plt
 from ..config import Style
 from ..theme import cm_to_in
@@ -54,7 +55,7 @@ def wrap_title(title: str, style: Style) -> str:
         return title
     if style.title.wrap is None:
         return title
-    return textwrap.fill(
+    return tw.fill(
         title, width=int(style.title.wrap),
         break_long_words=False, break_on_hyphens=True
     )

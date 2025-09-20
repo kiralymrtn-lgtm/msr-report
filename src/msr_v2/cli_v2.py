@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 XLSM = ROOT / "local" / "data" / "input" / "Egyedi reportok adatbázis_2024_anonim.xlsm"
 YAML = ROOT / "local" / "config" / "assignment_v2.yaml"
 
-LIMIT = 5  # Az első N ResponseID feldolgozása
+LIMIT = 1  # Az első N ResponseID feldolgozása
 
 # db = az "Adatbázis" sheet DataFrame-je
 db = pd.read_excel(XLSM, sheet_name="Adatbázis", engine="openpyxl")
