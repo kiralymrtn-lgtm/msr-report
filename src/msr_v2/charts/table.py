@@ -37,7 +37,7 @@ def save_table(
 
     # --- Globális (alap) beállítások a sor/fejléc vertikális "vizuális" magasságára és cella-paddingre ---
     DEFAULT_ROW_VPAD = 0.60      # a sor "vizuális" magasságát befolyásoló tényező (betűméret köré rakott felső+alsó ráhagyás, arány)
-    DEFAULT_HEADER_VPAD = 0.80   # fejlécsornál kicsit nagyobb alap ráhagyás
+    DEFAULT_HEADER_VPAD = 2.80   # fejlécsornál kicsit nagyobb alap ráhagyás
     DEFAULT_ROW_PAD = 0.02       # matplotlib cell.PAD (minden irány), adatsor
     DEFAULT_HEADER_PAD = 0.02    # matplotlib cell.PAD (minden irány), fejléc
 

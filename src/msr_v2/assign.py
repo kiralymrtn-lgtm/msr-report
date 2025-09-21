@@ -135,6 +135,57 @@ def render_from_yaml(
             tbl_cfg = (overrides or {}).get("table", {}) if isinstance(overrides, dict) else {}
             cols_cfg = tbl_cfg.get("columns")  # lehet None
 
+            # 2×3 oszlopos split: Erősségek | Ön | Átlag  •  Gyengeségek | Ön | Átlag
+            # YAML kapcsoló: overrides.table.pair_split: true
+            pair_split = bool(tbl_cfg.get("pair_split", False))
+
+            if pair_split and (comps is not None) and (len(comps) == len(vals)):
+                strengths, weaknesses = [], []
+                for lab, v, c in zip(labels, vals, comps):
+                    # szabály: ha Ön >= Átlag → Erősségek, különben Gyengeségek
+                    (strengths if (v is not None and c is not None and float(v) >= float(c)) else weaknesses).append(
+                        [lab, v, c])
+
+                # kiegyenlítjük a két oldalt ugyanannyi sorra (üres töltelék, hogy szépen egymás mellé kerüljenek)
+                maxlen = max(len(strengths), len(weaknesses)) or 0
+
+                def _pad(rows_list):
+                    pad = maxlen - len(rows_list)
+                    if pad > 0:
+                        rows_list.extend([["", None, None]] * pad)
+                    return rows_list
+
+                strengths = _pad(strengths)
+                weaknesses = _pad(weaknesses)
+
+                # 6 oszlopos (Erősségek | Ön | Átlag | Gyengeségek | Ön | Átlag) sorok
+                rows6 = []
+                for i in range(maxlen):
+                    s_lab, s_v, s_c = strengths[i]
+                    w_lab, w_v, w_c = weaknesses[i]
+                    rows6.append([s_lab, s_v, s_c, w_lab, w_v, w_c])
+
+                # fejléc: YAML-ból, ha megadtad; különben default
+                if cols_cfg and isinstance(cols_cfg, list) and len(cols_cfg) == 6:
+                    columns6 = [c.get("title", "") for c in cols_cfg]
+                else:
+                    columns6 = [
+                        "Erősségek", "Az Ön értékei", "Átlagos érték",
+                        "Gyengeségek", "Az Ön értékei", "Átlagos érték",
+                    ]
+
+                p = save_table(
+                    columns=columns6,
+                    rows=rows6,
+                    filename=filename,
+                    title=title,
+                    style=base_style,
+                    overrides=overrides,  # a table.py innen kapja a per-oszlop fmt/align/width_cm stb.
+                )
+                results.append(Path(p))
+                continue  # fontos: ne fusson le az alapeseti 2/3 oszlopos ág
+
+
             # 2) Sorok: 2 vagy 3 oszlop attól függően, van-e compare (comps)
             if comps is not None and len(comps) == len(vals):
                 rows = [[lab, v, c] for lab, v, c in zip(labels, vals, comps)]
