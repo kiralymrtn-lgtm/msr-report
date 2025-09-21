@@ -235,13 +235,14 @@ def save_bar(
             # nincs grouping → a teljes figura közepe
             x_center = 0.5
 
-        title_y = 1.08
+        is_title_wrapped = (overrides or {}).get("is_title_wrapped", True)
+
         fig.suptitle(
-            wrap_title(title, s),
+            wrap_title(title, s) if is_title_wrapped else title,
             fontsize=s.title.size,
             fontweight=s.title.weight,
             x=x_center,
-            y=title_y,
+            y=1.08,
         )
 
     # Bal margó beállítása a group címeknek

@@ -131,15 +131,32 @@ def render_from_yaml(
             )
             results.append(p)
         elif typ in ("table", "tbl"):
-            columns = ch.get("columns") or ["Kérdés", "Érték"]
-            rows = [[lab, v] for lab, v in zip(labels, vals)]
+            # 1) YAML overrides.table.columns → innen jönnek a fejléc címek
+            tbl_cfg = (overrides or {}).get("table", {}) if isinstance(overrides, dict) else {}
+            cols_cfg = tbl_cfg.get("columns")  # lehet None
+
+            # 2) Sorok: 2 vagy 3 oszlop attól függően, van-e compare (comps)
+            if comps is not None and len(comps) == len(vals):
+                rows = [[lab, v, c] for lab, v, c in zip(labels, vals, comps)]
+                # default fejléc, ha a YAML nem adott:
+                if not cols_cfg:
+                    columns = ["Kérdés", "Az Ön értéke", "Átlag"]
+                else:
+                    columns = [c.get("title", "") for c in cols_cfg]
+            else:
+                rows = [[lab, v] for lab, v in zip(labels, vals)]
+                if not cols_cfg:
+                    columns = ["Kérdés", "Érték"]
+                else:
+                    columns = [c.get("title", "") for c in cols_cfg]
+
             p = save_table(
                 columns=columns,
                 rows=rows,
                 filename=filename,
                 title=title,
                 style=base_style,
-                overrides=overrides,
+                overrides=overrides,  # a table.py innen tudja elérni a columns fmt/align beállításokat
             )
             results.append(Path(p))
         else:
