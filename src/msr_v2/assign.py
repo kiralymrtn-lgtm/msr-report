@@ -107,13 +107,18 @@ def render_from_yaml(
             )
             results.append(p)
         elif typ in ("bar", "barh", "bars"):
+
+            ov = dict(overrides or {})
+            # adja át a bar.py-nak a metrika kulcsokat ugyanabban a sorrendben, ahogy a YAML 'metrics' listában állnak
+            ov.setdefault("metric_keys", metrics)
+
             p = save_bar(
                 values=vals,
                 labels=labels,
                 filename=filename,
                 title=title,
                 style=base_style,
-                overrides=overrides,
+                overrides=ov,
                 overlay_values=comps if comps is not None else None,
                 show_y_labels=True,
             )

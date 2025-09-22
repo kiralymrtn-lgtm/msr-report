@@ -29,12 +29,17 @@ def save_bar(
     y = np.arange(len(labels))
     ax.yaxis.grid(False)
 
-    # --- Legacy MSR: két szintű y-tengely (group labels) támogatás ---
+    # --- Két szintű y-tengely (group labels) támogatás ---
     ov = overrides or {}
     group_labels = ov.get("group_labels")
     group_colors = ov.get("group_colors", {})
     group_sep = bool(ov.get("group_sep", False))
-    # régi assignmentben: -1.80 tipikus
+
+    # --- Per-metrika / per-label színfelülírás ---
+    metric_keys = ov.get("metric_keys")  # assign.py tölti fel a YAML 'metrics' listával
+    metric_colors = ov.get("metric_colors", {})  # { metric_key: "#hex" }
+    label_colors = ov.get("label_colors", {})  # { label_text: "#hex" }
+
     group_title_offset_axes = float(ov.get("group_title_offset_axes", -0.35))
     group_title_reserve_left = float(ov.get("group_title_reserve_left", 0.40))
     # Egyszerűsítés: nincs forgatás
@@ -49,9 +54,30 @@ def save_bar(
     if ov.get("show_legend") is not None:
         s.legend.show = bool(ov.get("show_legend"))
 
-    # Csoportonként szín (ha megadva), különben secondary
-    if group_labels and isinstance(group_labels, list) and len(group_labels) == len(labels):
-        bar_colors = [group_colors.get(gl, s.palette.secondary) for gl in group_labels]
+    # Sávszínek kiválasztása – prioritás:
+    # 1) metric_colors (YAML 'metrics' kulcsok szerint, assign.py adja át a 'metric_keys' listát)
+    # 2) label_colors (YAML 'labels' sztringek szerint)
+    # 3) group_colors (ha van group_labels)
+    # 4) alap: paletta secondary
+    if any((metric_colors, label_colors, group_labels)):
+        bar_colors = []
+        for i, lab in enumerate(labels):
+            col = None
+            # 1) metric -> color
+            if metric_keys and i < len(metric_keys):
+                mk = metric_keys[i]
+                col = metric_colors.get(mk)
+            # 2) label -> color
+            if col is None:
+                col = label_colors.get(str(lab))
+            # 3) group -> color
+            if col is None and group_labels and isinstance(group_labels, list) and len(group_labels) == len(labels):
+                gl = group_labels[i]
+                col = group_colors.get(gl)
+            # 4) default
+            if col is None:
+                col = s.palette.secondary
+            bar_colors.append(col)
     else:
         bar_colors = s.palette.secondary
 
