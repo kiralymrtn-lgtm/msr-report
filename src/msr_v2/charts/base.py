@@ -13,7 +13,7 @@ OUT_TABLES = Path("local/output/assets/tables")
 # Legend függőleges eltolása chart-típusonként (figura-koordináta)
 LEGEND_OFFSET_BY_TYPE = {
     "radar":  -0.00,
-    "bar":    -0.05,
+    "bar":    -0.08,
     "column": -0.08,
 }
 DEFAULT_LEGEND_OFFSET = -0.05

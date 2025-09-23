@@ -26,8 +26,13 @@ def save_bar(
     ensure_out_dirs()
 
     fig, ax = fig_ax(s)
-    y = np.arange(len(labels))
+
     ax.yaxis.grid(False)
+
+    # YAML-sorrend felülről lefelé: a sávok y-pozícióját fordítjuk meg,
+    # tengelyt NEM invertálunk, így minden más (pl. overlay) változatlanul működik.
+    n = len(labels)
+    y = np.arange(n)[::-1]
 
     # --- Két szintű y-tengely (group labels) támogatás ---
     ov = overrides or {}
@@ -96,6 +101,7 @@ def save_bar(
     # Bar thickness (bar height) – overridable from YAML via `overrides.bar_height`
     bar_height = float((overrides or {}).get("bar_height", 0.8))
     bars = ax.barh(y, values, height=bar_height, color=bar_colors, label="Az Ön értékei")
+
 
 
 
@@ -216,8 +222,10 @@ def save_bar(
             right_label_axes = x0_axes - 0.005  # kis puffer, hogy ne érjen bele a baseline-ba
 
             for k in range(len(order) - 1):
-                last_y = max(idx_by_group[order[k]])
-                y_sep = float(last_y) + 0.5
+                cur = idx_by_group[order[k]]
+                nxt = idx_by_group[order[k + 1]]
+                # határ a két csoport között: a két szomszédos csoport találkozási pontjának felezője
+                y_sep = 0.5 * (min(cur) + max(nxt))
                 ax.plot([left_label_axes, right_label_axes], [y_sep, y_sep],
                         transform=ax.get_yaxis_transform(),
                         color="#D0D5DD", linewidth=1.0, alpha=0.9, solid_capstyle="butt",
@@ -263,17 +271,25 @@ def save_bar(
 
         is_title_wrapped = (overrides or {}).get("is_title_wrapped", True)
 
+        # Title padding: ha van overlay (átlag-vonal és felirat), picit lejjebb hozzuk a címet
+        title_y = 1.1 if overlay_values is None else 1.08
+
+
         fig.suptitle(
             wrap_title(title, s) if is_title_wrapped else title,
             fontsize=s.title.size,
             fontweight=s.title.weight,
             x=x_center,
-            y=1.08,
+            y=title_y,
         )
 
     # Bal margó beállítása a group címeknek
     if group_labels and isinstance(group_labels, list) and len(group_labels) == len(labels):
-        fig.subplots_adjust(left=group_title_reserve_left)
+        # Constrained layout mellett ne hívjunk subplots_adjust-ot → warningot okoz és felülíródik.
+        use_cl = hasattr(fig, "get_constrained_layout") and fig.get_constrained_layout()
+        if not use_cl:
+            fig.subplots_adjust(left=group_title_reserve_left)
+        # constrained layout esetén a group-címkék is az axes-hez kötött artistok, a CL helyet fog hagyni nekik.
 
     if s.legend.show:
         s.chart_type = "bar"
